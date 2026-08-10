@@ -1,0 +1,423 @@
+# ESPHome Powerpal Direct BLE Client
+#
+# KEY INSIGHT: The Powerpal has TWO layers of authentication:
+# 1. BLE-level encryption (MITM passkey pairing via ESP-IDF GAP)
+# 2. Application-level auth (writing pairing code to 59DA0011)
+#
+# The correct sequence (matching the Powerpal app behavior) is:
+# 1. Connect
+# 2. BLE encryption triggers automatically (passkey via on_passkey_request)
+# 3. Write pairing code to 59DA0011 IMMEDIATELY after connect (before waiting for auth)
+# 4. Once auth completes, write timestamp + batch size + trigger
+# 5. Subscribe to notifications
+#
+# The previous approach was waiting for auth before writing the pairing code,
+# but the Powerpal may need the app-level code written during the pairing window.
+
+substitutions:
+  name: powerpal-ble
+  friendly_name: Powerpal
+  powerpal_mac: !secret powerpal_ble__mac
+  # Your 6-digit pairing code (from the back of the Powerpal device)
+  powerpal_passkey: !secret powerpal_ble__passkey
+  # Pulses per kWh — device-specific calibration value
+  pulses_per_kwh: "3200"
+  # Powerpal cloud API credentials (leave empty to disable cloud upload)
+  powerpal_device_id: !secret powerpal_ble__device_id
+  powerpal_api_key: !secret powerpal_ble__api_key
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          if (strlen("${powerpal_device_id}") == 0 || strlen("${powerpal_api_key}") == 0) {
+            ESP_LOGW("powerpal", "Cloud upload DISABLED — powerpal_device_id or powerpal_api_key is empty");
+          } else {
+            ESP_LOGI("powerpal", "Cloud upload enabled for device ${powerpal_device_id}");
+          }
+      - logger.log: "Powerpal BLE client booted, waiting for connection..."
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+logger:
+  level: DEBUG
+
+api:
+  encryption:
+    key: !secret api_encryption_key
+
+ota:
+  platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+http_request:
+  id: http_request_id
+  useragent: "ESPHome/Powerpal"
+  timeout: 10s
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+
+globals:
+  - id: notification_counter
+    type: int
+    initial_value: "0"
+  - id: last_notification_timestamp
+    type: uint32_t
+    initial_value: "0"
+
+ble_client:
+  - mac_address: ${powerpal_mac}
+    id: powerpal_client
+    auto_connect: true
+    on_connect:
+      then:
+        - binary_sensor.template.publish:
+            id: powerpal_connected
+            state: true
+        - logger.log: "Connected to Powerpal — starting auth sequence..."
+        # Step 1: Initiate BLE encryption AND write pairing code simultaneously.
+        # The Powerpal expects the app-level code during the pairing window.
+        - lambda: |-
+            esp_ble_set_encryption(id(powerpal_client).get_remote_bda(), ESP_BLE_SEC_ENCRYPT_MITM);
+        # Write pairing code IMMEDIATELY — don't wait for auth.
+        # The Powerpal processes this alongside the BLE pairing handshake.
+        - delay: 500ms
+        - logger.log: "Writing pairing code (during auth window)..."
+        - ble_client.ble_write:
+            id: powerpal_client
+            service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+            characteristic_uuid: "59da0011-12f4-25a6-7d4f-55961dce4205"
+            value: !lambda |-
+              uint32_t code = ${powerpal_passkey};
+              return {
+                (uint8_t)(code & 0xFF),
+                (uint8_t)((code >> 8) & 0xFF),
+                (uint8_t)((code >> 16) & 0xFF),
+                (uint8_t)((code >> 24) & 0xFF)
+              };
+        # Step 2: Wait for BLE auth to fully complete
+        - delay: 4s
+        - logger.log: "Auth window passed, writing timestamp..."
+        # Step 3: Write current timestamp
+        - ble_client.ble_write:
+            id: powerpal_client
+            service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+            characteristic_uuid: "59da0004-12f4-25a6-7d4f-55961dce4205"
+            value: !lambda |-
+              uint32_t ts = (uint32_t)id(ha_time).now().timestamp;
+              ESP_LOGI("powerpal", "Writing timestamp: %lu", (unsigned long)ts);
+              return {
+                (uint8_t)(ts & 0xFF),
+                (uint8_t)((ts >> 8) & 0xFF),
+                (uint8_t)((ts >> 16) & 0xFF),
+                (uint8_t)((ts >> 24) & 0xFF)
+              };
+        - delay: 1s
+        # Step 4: Set batch size to 1 (real-time, one measurement per notification)
+        - logger.log: "Setting batch size to 1..."
+        - ble_client.ble_write:
+            id: powerpal_client
+            service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+            characteristic_uuid: "59da0013-12f4-25a6-7d4f-55961dce4205"
+            value: [0x01]
+        - delay: 1s
+        # Step 5: Subscribe to notifications BEFORE writing the trigger.
+        # The trigger tells the Powerpal "start sending", so we need to be
+        # listening before we ask for data.
+        - logger.log: "Subscribing to notifications..."
+        - lambda: |-
+            auto *chr = id(powerpal_client).get_characteristic(
+              esp32_ble_tracker::ESPBTUUID::from_raw("59daabcd-12f4-25a6-7d4f-55961dce4205"),
+              esp32_ble_tracker::ESPBTUUID::from_raw("59da0001-12f4-25a6-7d4f-55961dce4205")
+            );
+            if (chr == nullptr) {
+              ESP_LOGE("powerpal", "Measurement characteristic 59DA0001 not found!");
+              return;
+            }
+            ESP_LOGI("powerpal", "Measurement char handle: %u", (unsigned)chr->handle);
+            esp_err_t reg_err = esp_ble_gattc_register_for_notify(
+              id(powerpal_client).get_gattc_if(),
+              id(powerpal_client).get_remote_bda(),
+              chr->handle
+            );
+            if (reg_err != ESP_OK) {
+              ESP_LOGE("powerpal", "register_for_notify failed: %d", (int)reg_err);
+            } else {
+              ESP_LOGI("powerpal", "register_for_notify OK");
+            }
+            auto *descr = chr->get_descriptor(
+              esp32_ble_tracker::ESPBTUUID::from_uint16(0x2902)
+            );
+            if (descr != nullptr) {
+              uint16_t notify_en = 0x0001;
+              esp_err_t err = esp_ble_gattc_write_char_descr(
+                id(powerpal_client).get_gattc_if(),
+                id(powerpal_client).get_conn_id(),
+                descr->handle,
+                sizeof(notify_en),
+                (uint8_t *)&notify_en,
+                ESP_GATT_WRITE_TYPE_RSP,
+                ESP_GATT_AUTH_REQ_NONE
+              );
+              if (err == ESP_OK) {
+                ESP_LOGI("powerpal", "CCCD written — notifications enabled");
+              } else {
+                ESP_LOGE("powerpal", "CCCD write failed: %d", (int)err);
+              }
+            } else {
+              ESP_LOGE("powerpal", "CCCD descriptor 0x2902 not found!");
+            }
+        - delay: 2s
+        # Step 6: Write measurement trigger LAST — this starts the data flow
+        - logger.log: "Writing measurement trigger..."
+        - ble_client.ble_write:
+            id: powerpal_client
+            service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+            characteristic_uuid: "59da0002-12f4-25a6-7d4f-55961dce4205"
+            value: !lambda |-
+              uint32_t ts = (uint32_t)id(ha_time).now().timestamp;
+              ESP_LOGI("powerpal", "Trigger timestamp: %lu", (unsigned long)ts);
+              return {
+                (uint8_t)(ts & 0xFF),
+                (uint8_t)((ts >> 8) & 0xFF),
+                (uint8_t)((ts >> 16) & 0xFF),
+                (uint8_t)((ts >> 24) & 0xFF)
+              };
+        - logger.log: "Setup complete — waiting for measurement notifications..."
+        # Step 7: Trigger reads of API Key and Device ID.
+        # The ble_client sensors with update_interval: never are defined below.
+        # Calling .update() triggers a GATT read; the lambda processes the response.
+        - delay: 2s
+        - logger.log: "Reading API Key from 59DA0009..."
+        - lambda: |-
+            id(powerpal_api_key_raw).update();
+        - delay: 2s
+        - logger.log: "Reading Device ID from 59DA0010..."
+        - lambda: |-
+            id(powerpal_device_id_raw).update();
+    on_disconnect:
+      then:
+        - binary_sensor.template.publish:
+            id: powerpal_connected
+            state: false
+        - logger.log: "Disconnected from Powerpal, will auto-reconnect..."
+    on_passkey_request:
+      then:
+        - logger.log:
+            format: "Powerpal requesting passkey: ${powerpal_passkey}"
+            level: INFO
+        - ble_client.passkey_reply:
+            id: powerpal_client
+            passkey: ${powerpal_passkey}
+    on_passkey_notification:
+      then:
+        - logger.log:
+            format: "Passkey notification: %u"
+            args: ["(unsigned)passkey"]
+            level: INFO
+
+time:
+  - platform: homeassistant
+    id: ha_time
+
+sensor:
+  # notify: false — we handle CCCD subscription manually in on_connect.
+  # The ble_sensor still receives ESP_GATTC_NOTIFY_EVT via gattc_event_handler.
+  - platform: ble_client
+    type: characteristic
+    ble_client_id: powerpal_client
+    id: powerpal_raw_notification
+    internal: true
+    service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+    characteristic_uuid: "59da0001-12f4-25a6-7d4f-55961dce4205"
+    notify: false
+    update_interval: never
+    lambda: |-
+      if (x.size() < 6) {
+        ESP_LOGW("powerpal", "Short notification: %u bytes", (unsigned)x.size());
+        ESP_LOGW("powerpal", "  Hex: %s", format_hex_pretty(x.data(), x.size()).c_str());
+        return NAN;
+      }
+      uint32_t ts = (uint32_t)x[0] | ((uint32_t)x[1] << 8) |
+                    ((uint32_t)x[2] << 16) | ((uint32_t)x[3] << 24);
+      uint16_t pulses = (uint16_t)x[4] | ((uint16_t)x[5] << 8);
+      id(notification_counter) += 1;
+      ESP_LOGI("powerpal", ">>> NOTIFICATION #%d: ts=%lu, pulses=%u, bytes=%u <<<",
+        id(notification_counter), (unsigned long)ts, (unsigned)pulses, (unsigned)x.size());
+
+      // Compute interval_seconds (use 60s default on first notification)
+      float interval_seconds;
+      if (id(last_notification_timestamp) == 0) {
+        interval_seconds = 60.0f;
+      } else {
+        interval_seconds = (float)(ts - id(last_notification_timestamp));
+        if (interval_seconds <= 0) {
+          interval_seconds = 60.0f;
+        }
+      }
+      id(last_notification_timestamp) = ts;
+
+      // Compute power: power_w = (pulses / pulses_per_kwh) * (3600000 / interval_seconds)
+      float power_w = ((float)pulses / (float)${pulses_per_kwh}) * (3600000.0f / interval_seconds);
+      ESP_LOGI("powerpal", "  interval=%.1fs, power=%.2fW", interval_seconds, power_w);
+
+      // Publish power to the template sensor
+      id(powerpal_power).publish_state(power_w);
+
+      // Cloud upload: compute watt_hours and POST to Powerpal API
+      // NOTE: The upload endpoint is /meter_reading/{device_id} (not /device/{id}/readings)
+      // and expects an array payload with cost, is_peak, pulses, timestamp, watt_hours.
+      if (strlen("${powerpal_device_id}") > 0 && strlen("${powerpal_api_key}") > 0) {
+        float watt_hours = ((float)pulses / (float)${pulses_per_kwh}) * 1000.0f;
+        ESP_LOGD("powerpal", "  watt_hours=%.3f, uploading to cloud...", watt_hours);
+
+        char json_body[256];
+        snprintf(json_body, sizeof(json_body),
+          "[{\"timestamp\":%lu,\"watt_hours\":%.4f,\"cost\":0,\"is_peak\":false,\"pulses\":%u}]",
+          (unsigned long)ts, watt_hours, (unsigned)pulses);
+
+        std::vector<esphome::http_request::Header> headers;
+        headers.push_back({"Authorization", "${powerpal_api_key}"});
+        headers.push_back({"Content-Type", "application/json"});
+
+        auto response = id(http_request_id).post(
+          "https://readings.powerpal.net/api/v1/meter_reading/${powerpal_device_id}",
+          std::string(json_body),
+          headers);
+
+        if (response != nullptr && response->status_code >= 200 && response->status_code < 300) {
+          ESP_LOGD("powerpal", "  Cloud upload OK (HTTP %d)", response->status_code);
+        } else if (response != nullptr) {
+          ESP_LOGW("powerpal", "  Cloud upload FAILED (HTTP %d)", response->status_code);
+        } else {
+          ESP_LOGW("powerpal", "  Cloud upload FAILED — no response (network error/timeout)");
+        }
+        if (response) {
+          response->end();
+        }
+      }
+
+      id(notification_count_sensor).publish_state((float)id(notification_counter));
+      return (float)pulses;
+
+  - platform: template
+    name: "Power"
+    id: powerpal_power
+    unit_of_measurement: "W"
+    device_class: power
+    state_class: measurement
+    accuracy_decimals: 1
+    icon: "mdi:flash"
+
+  - platform: template
+    name: "Notification Count"
+    id: notification_count_sensor
+    accuracy_decimals: 0
+    icon: "mdi:counter"
+    entity_category: diagnostic
+
+  # API Key reader — reads characteristic 59DA0009 when .update() is called
+  - platform: ble_client
+    type: characteristic
+    ble_client_id: powerpal_client
+    id: powerpal_api_key_raw
+    internal: true
+    service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+    characteristic_uuid: "59da0009-12f4-25a6-7d4f-55961dce4205"
+    notify: false
+    update_interval: never
+    lambda: |-
+      if (x.size() == 16) {
+        char buf[37];
+        snprintf(buf, sizeof(buf),
+          "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+          x[0], x[1], x[2], x[3],
+          x[4], x[5], x[6], x[7],
+          x[8], x[9], x[10], x[11],
+          x[12], x[13], x[14], x[15]);
+        ESP_LOGI("powerpal", "============================================");
+        ESP_LOGI("powerpal", "=== API Key: %s ===", buf);
+        ESP_LOGI("powerpal", "============================================");
+        // Expose masked version: first 8 chars + "****-****-****-************"
+        char masked[37];
+        snprintf(masked, sizeof(masked),
+          "%02x%02x%02x%02x-****-****-****-************",
+          x[0], x[1], x[2], x[3]);
+        id(powerpal_api_key_text).publish_state(std::string(masked));
+      } else {
+        ESP_LOGW("powerpal", "API Key read returned %u bytes (expected 16)", (unsigned)x.size());
+        ESP_LOGW("powerpal", "  Hex: %s", format_hex_pretty(x.data(), x.size()).c_str());
+      }
+      return NAN;
+
+  # Device ID reader — reads characteristic 59DA0010 when .update() is called
+  - platform: ble_client
+    type: characteristic
+    ble_client_id: powerpal_client
+    id: powerpal_device_id_raw
+    internal: true
+    service_uuid: "59daabcd-12f4-25a6-7d4f-55961dce4205"
+    characteristic_uuid: "59da0010-12f4-25a6-7d4f-55961dce4205"
+    notify: false
+    update_interval: never
+    lambda: |-
+      if (x.size() >= 4) {
+        char buf[9];
+        snprintf(buf, sizeof(buf), "%02x%02x%02x%02x",
+          x[3], x[2], x[1], x[0]);
+        ESP_LOGI("powerpal", "============================================");
+        ESP_LOGI("powerpal", "=== Device ID: %s ===", buf);
+        ESP_LOGI("powerpal", "============================================");
+        // Expose masked version: first 4 chars + "****"
+        char masked[9];
+        snprintf(masked, sizeof(masked), "%02x%02x****",
+          x[3], x[2]);
+        id(powerpal_device_id_text).publish_state(std::string(masked));
+      } else {
+        ESP_LOGW("powerpal", "Device ID read returned %u bytes (expected >=4)", (unsigned)x.size());
+        ESP_LOGW("powerpal", "  Hex: %s", format_hex_pretty(x.data(), x.size()).c_str());
+      }
+      return NAN;
+
+
+
+text_sensor:
+  - platform: template
+    name: "Powerpal API Key"
+    id: powerpal_api_key_text
+    icon: "mdi:key"
+    entity_category: diagnostic
+
+  - platform: template
+    name: "Powerpal Device ID"
+    id: powerpal_device_id_text
+    icon: "mdi:identifier"
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: template
+    name: "Powerpal Connected"
+    id: powerpal_connected
+    device_class: connectivity
+
+button:
+  - platform: template
+    name: "Reconnect Powerpal"
+    icon: "mdi:bluetooth-connect"
+    entity_category: config
+    on_press:
+      then:
+        - lambda: id(powerpal_client).set_enabled(false);
+        - delay: 2s
+        - lambda: id(powerpal_client).set_enabled(true);

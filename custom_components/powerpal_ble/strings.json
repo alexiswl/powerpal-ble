@@ -1,0 +1,69 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Powerpal Connection Mode",
+        "description": "Choose how to connect to your Powerpal device.",
+        "data": {
+          "connection_mode": "Connection Mode"
+        }
+      },
+      "ble_device": {
+        "title": "Select Powerpal Device",
+        "description": "Select your Powerpal device or enter its MAC address manually.",
+        "data": {
+          "mac_address": "MAC Address"
+        }
+      },
+      "pairing": {
+        "title": "Powerpal BLE Configuration",
+        "description": "Enter the pairing details for your Powerpal device at {address}.",
+        "data": {
+          "pairing_code": "Pairing Code (6 digits)",
+          "pulses_per_kwh": "Pulses per kWh",
+          "notification_interval": "Update Interval (minutes, 1-15)",
+          "bluez_bonding": "Enable Bluetooth Bonding",
+          "api_key": "API Key (optional)",
+          "device_id": "Device ID (optional)"
+        },
+        "data_description": {
+          "bluez_bonding": "Bonds the device at the Bluetooth level for link-layer encryption. Required for most setups.",
+          "api_key": "Your Powerpal API key (UUID format). Enables cloud uploads and historical data. Leave empty for BLE-only mode.",
+          "device_id": "Your Powerpal device ID. Required for API features. Found on the ESPHome logs or the Powerpal app."
+        }
+      },
+      "connection_mode": {
+        "title": "Powerpal Connection Mode",
+        "description": "A Powerpal device was discovered at {address}. Choose how you want to connect to it.",
+        "data": {
+          "connection_mode": "Connection Mode"
+        },
+        "data_description": {
+          "connection_mode": "Direct BLE connects from HA's Bluetooth adapter. ESPHome uses an ESP32 running ESPHome as BLE proxy."
+        }
+      },
+      "esphome": {
+        "title": "ESPHome Power Entity Configuration",
+        "description": "Enter the entity ID of the ESPHome sensor that provides power readings (in watts) from your Powerpal device. The ESPHome device handles the BLE connection and computes power on-device; this integration uses the power value directly for energy tracking.",
+        "data": {
+          "esphome_power_entity": "ESPHome Power Sensor Entity ID",
+          "api_key": "API Key (optional)",
+          "device_id": "Device ID (optional)"
+        },
+        "data_description": {
+          "esphome_power_entity": "The entity ID of the ESPHome sensor publishing power in watts (e.g. sensor.powerpal_power).",
+          "api_key": "Your Powerpal API key (UUID format). Enables historical data backfill when HA was offline. Leave empty to skip.",
+          "device_id": "Your Powerpal device ID. Required for API features. Found in the Powerpal app or ESPHome logs."
+        }
+      }
+    },
+    "error": {
+      "entity_not_found": "Entity not found. Check the entity ID is correct and the ESPHome device is online.",
+      "invalid_api_key": "Invalid API key format. Must be a UUID (e.g. abcdef01-2345-6789-abcd-ef0123456789).",
+      "invalid_device_id": "Device ID cannot be blank whitespace."
+    },
+    "abort": {
+      "already_configured": "This Powerpal device is already configured."
+    }
+  }
+}
