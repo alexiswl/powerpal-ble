@@ -1,17 +1,17 @@
 {
   "domain": "powerpal_ble",
   "name": "Powerpal BLE",
-  "codeowners": [],
-  "config_flow": true,
-  "dependencies": ["bluetooth_adapters"],
   "after_dependencies": ["recorder"],
-  "documentation": "https://github.com/alexiswl/powerpal_ble",
-  "iot_class": "local_push",
-  "requirements": ["bleak>=0.21.0", "bleak-retry-connector>=3.1.0"],
   "bluetooth": [
     {
       "service_uuid": "59daabcd-12f4-25a6-7d4f-55961dce4205"
     }
   ],
+  "codeowners": [],
+  "config_flow": true,
+  "dependencies": ["bluetooth_adapters"],
+  "documentation": "https://github.com/alexiswl/powerpal_ble",
+  "iot_class": "local_push",
+  "requirements": ["bleak>=0.21.0", "bleak-retry-connector>=3.1.0"],
   "version": "1.0.0"
 }
