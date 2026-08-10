@@ -1,0 +1,21 @@
+[MASTER]
+load-plugins=pylint.extensions.code_style,pylint.extensions.typing
+
+[MESSAGES CONTROL]
+disable=
+    format,
+    too-few-public-methods,
+    too-many-instance-attributes,
+    too-many-arguments,
+    duplicate-code,
+    import-error
+
+[FORMAT]
+expected-line-ending-format=LF
+
+[TYPECHECK]
+ignored-modules=homeassistant,bleak,bleak_retry_connector,voluptuous
+
+[DESIGN]
+max-args=10
+max-attributes=15
