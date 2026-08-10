@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -113,7 +113,7 @@ class PowerpalApiClient:
                         )
                         return False
 
-                except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                except (TimeoutError, aiohttp.ClientError) as err:
                     _LOGGER.warning(
                         "Powerpal API upload failed due to network error: %s",
                         err,
@@ -137,7 +137,7 @@ class PowerpalApiClient:
         Returns empty list on any failure (logs warning).
         """
         try:
-            end = datetime.now(tz=timezone.utc)
+            end = datetime.now(tz=UTC)
             start = end - timedelta(days=days)
 
             url = f"{self.BASE_URL}device/{self._device_id}/readings"
@@ -188,7 +188,7 @@ class PowerpalApiClient:
                 )
                 return []
 
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+        except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.warning(
                 "Network error fetching Powerpal historical data: %s", err
             )

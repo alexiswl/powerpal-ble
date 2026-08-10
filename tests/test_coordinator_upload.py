@@ -11,12 +11,10 @@ from __future__ import annotations
 import struct
 from unittest.mock import MagicMock
 
-import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from custom_components.powerpal_ble.coordinator import PowerpalCoordinator
-
 
 # ---------------------------------------------------------------------------
 # Strategies

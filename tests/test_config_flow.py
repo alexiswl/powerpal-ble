@@ -19,7 +19,6 @@ from custom_components.powerpal_ble.const import (
     DEFAULT_PULSES_PER_KWH,
 )
 
-
 # ---------------------------------------------------------------------------
 # Rebuild the pairing schema as defined in config_flow.py for direct testing
 # ---------------------------------------------------------------------------

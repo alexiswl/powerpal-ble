@@ -1,9 +1,12 @@
 """Property-based tests for powerpal_ble computation functions."""
 
-from hypothesis import given, settings, assume
 import hypothesis.strategies as st
+from hypothesis import assume, given, settings
 
-from custom_components.powerpal_ble.computations import compute_power_w, compute_watt_hours
+from custom_components.powerpal_ble.computations import (
+    compute_power_w,
+    compute_watt_hours,
+)
 
 
 # Feature: esphome-cloud-upload, Property 1: Power computation formula

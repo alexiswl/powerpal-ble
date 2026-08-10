@@ -10,7 +10,7 @@ which upserts records by start timestamp. This test verifies that:
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -141,7 +141,7 @@ async def test_historical_import_deduplication(records: list[dict]) -> None:
         f"Expected 3 positional args (hass, metadata, stats), got {len(positional)}"
     )
 
-    _, metadata, statistics_data = positional
+    _, _metadata, statistics_data = positional
 
     # Property: count of imported records equals count of input records
     assert len(statistics_data) == len(records), (
@@ -156,7 +156,7 @@ async def test_historical_import_deduplication(records: list[dict]) -> None:
 
     # Property: timestamps correspond to the input records
     expected_timestamps = {
-        datetime.fromtimestamp(r["timestamp"], tz=timezone.utc)
+        datetime.fromtimestamp(r["timestamp"], tz=UTC)
         for r in records
     }
     actual_timestamps = set(timestamps)

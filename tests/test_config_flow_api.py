@@ -12,7 +12,6 @@ from hypothesis import strategies as st
 
 from custom_components.powerpal_ble.config_flow import PowerpalBLEConfigFlow
 
-
 # ---------------------------------------------------------------------------
 # Strategies
 # ---------------------------------------------------------------------------

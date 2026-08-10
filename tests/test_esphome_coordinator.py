@@ -8,8 +8,6 @@ import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # Ensure homeassistant.core.callback is a pass-through decorator so that
 # decorated methods in ESPHomeCoordinator remain callable functions.
 _ha_core_mock = sys.modules.get("homeassistant.core")
@@ -27,7 +25,6 @@ from custom_components.powerpal_ble.const import (
     CONNECTION_MODE_ESPHOME,
 )
 from custom_components.powerpal_ble.esphome_coordinator import ESPHomeCoordinator
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -354,7 +351,7 @@ class TestMidnightDailyEnergyReset:
             CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
             CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
         })
-        coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
+        coordinator, _callback_fn, cancel = _start_coordinator(hass, entry)
 
         listener = MagicMock()
         coordinator.async_add_listener(listener)

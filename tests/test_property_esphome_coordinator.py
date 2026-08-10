@@ -4,8 +4,8 @@ Uses Hypothesis to verify universal properties of the ESPHomeCoordinator class.
 """
 from __future__ import annotations
 
-import sys
 import importlib
+import sys
 
 _ha_core_mock = sys.modules.get("homeassistant.core")
 if _ha_core_mock is not None:
@@ -19,8 +19,8 @@ from unittest.mock import MagicMock
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from custom_components.powerpal_ble.esphome_coordinator import ESPHomeCoordinator
 from custom_components.powerpal_ble.const import CONF_ESPHOME_POWER_ENTITY
+from custom_components.powerpal_ble.esphome_coordinator import ESPHomeCoordinator
 
 
 def _make_coordinator(entity_id: str = "sensor.powerpal_power") -> ESPHomeCoordinator:

@@ -24,6 +24,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["custom_components"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "E402"]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

@@ -33,7 +33,7 @@ if "bleak_retry_connector" not in sys.modules:
     sys.modules["bleak_retry_connector"] = mock_retry
     _ha_mocks["bleak_retry_connector"] = mock_retry
 
-from custom_components.powerpal_ble.const import (  # noqa: E402
+from custom_components.powerpal_ble.const import (
     CHAR_PAIRING_CODE_UUID,
     CONF_BLUEZ_BONDING,
     CONF_MAC_ADDRESS,
@@ -41,7 +41,7 @@ from custom_components.powerpal_ble.const import (  # noqa: E402
     CONF_PAIRING_CODE,
     CONF_PULSES_PER_KWH,
 )
-from custom_components.powerpal_ble.coordinator import PowerpalCoordinator  # noqa: E402
+from custom_components.powerpal_ble.coordinator import PowerpalCoordinator
 
 
 def _make_coordinator(bluez_bonding: bool | None = None) -> PowerpalCoordinator:

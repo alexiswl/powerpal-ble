@@ -6,17 +6,16 @@ import logging
 import struct
 import subprocess
 import time
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from bleak import BleakClient, BleakError
 from bleak_retry_connector import establish_connection
-
 from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .api_client import PowerpalApiClient
-
 from .const import (
     CHAR_API_KEY_UUID,
     CHAR_MEASUREMENT_ACCESS_UUID,
@@ -33,7 +32,6 @@ from .const import (
     CONF_PAIRING_CODE,
     CONF_PULSES_PER_KWH,
     DEFAULT_BLUEZ_BONDING,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -408,7 +406,7 @@ class PowerpalCoordinator:
         try:
             await self._client.stop_notify(CHAR_PAIRING_CODE_UUID)
         except (BleakError, Exception):  # noqa: BLE001
-            pass
+            _LOGGER.debug("Failed to stop pairing notifications (non-critical)")
 
         # Small delay to allow authentication to process
         await asyncio.sleep(1)
@@ -581,8 +579,6 @@ class PowerpalCoordinator:
     async def _check_bluez_bonded(self) -> bool:
         """Check if the device is already bonded in BlueZ."""
         try:
-            # Convert MAC address format for D-Bus path (: -> _)
-            dev_path_addr = self._mac_address.upper().replace(":", "_")
             # Use bluetoothctl to check if device is paired
             result = await asyncio.to_thread(
                 subprocess.run,
@@ -698,7 +694,7 @@ class PowerpalCoordinator:
             await proc.stdin.drain()
             try:
                 await asyncio.wait_for(proc.wait(), timeout=5)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 proc.kill()
 
             # Give BlueZ time to settle after pairing
@@ -924,8 +920,8 @@ class PowerpalCoordinator:
             try:
                 async with asyncio.timeout(5):
                     await self._client.disconnect()
-            except (BleakError, asyncio.TimeoutError, Exception):  # noqa: BLE001
-                pass
+            except (TimeoutError, BleakError, Exception):  # noqa: BLE001
+                _LOGGER.debug("Error during disconnect (non-critical)")
             self._client = None
 
     def reset_daily_energy(self) -> None:

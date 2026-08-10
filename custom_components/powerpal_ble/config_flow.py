@@ -6,7 +6,6 @@ import re
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
@@ -20,7 +19,6 @@ from .const import (
     CONF_CONNECTION_MODE,
     CONF_DEVICE_ID,
     CONF_ESPHOME_POWER_ENTITY,
-    CONF_ESPHOME_PULSE_ENTITY,
     CONF_MAC_ADDRESS,
     CONF_NOTIFICATION_INTERVAL,
     CONF_PAIRING_CODE,

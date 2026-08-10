@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -47,12 +47,12 @@ async def _fetch_historical(
         statistic_id = f"{DOMAIN}:{entry.entry_id}_energy_total"
 
         try:
-            from homeassistant.components.recorder.statistics import (  # noqa: PLC0415
-                async_import_statistics,
-            )
-            from homeassistant.components.recorder.models import (  # noqa: PLC0415
+            from homeassistant.components.recorder.models import (
                 StatisticData,
                 StatisticMetaData,
+            )
+            from homeassistant.components.recorder.statistics import (
+                async_import_statistics,
             )
         except ImportError:
             _LOGGER.warning(
@@ -78,7 +78,7 @@ async def _fetch_historical(
             statistics_data.append(
                 StatisticData(
                     start=datetime.fromtimestamp(
-                        record["timestamp"], tz=timezone.utc
+                        record["timestamp"], tz=UTC
                     ),
                     sum=cumulative_energy,
                 )
@@ -101,11 +101,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     connection_mode = entry.data.get(CONF_CONNECTION_MODE, DEFAULT_CONNECTION_MODE)
 
     if connection_mode == CONNECTION_MODE_ESPHOME:
-        from .esphome_coordinator import ESPHomeCoordinator  # noqa: PLC0415
+        from .esphome_coordinator import ESPHomeCoordinator
 
         coordinator = ESPHomeCoordinator(hass, entry)
     else:
-        from .coordinator import PowerpalCoordinator  # noqa: PLC0415
+        from .coordinator import PowerpalCoordinator
 
         coordinator = PowerpalCoordinator(hass, entry)
 

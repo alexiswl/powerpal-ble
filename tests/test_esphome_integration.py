@@ -8,8 +8,6 @@ import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # Ensure homeassistant.core.callback is a pass-through decorator so that
 # decorated methods in ESPHomeCoordinator remain callable functions.
 _ha_core_mock = sys.modules.get("homeassistant.core")

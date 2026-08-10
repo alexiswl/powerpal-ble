@@ -254,7 +254,6 @@ async def test_fetch_request_construction(
 
 import logging
 
-
 # ---------------------------------------------------------------------------
 # Helpers for error handling tests
 # ---------------------------------------------------------------------------
