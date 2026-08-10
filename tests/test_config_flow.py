@@ -2,6 +2,7 @@
 
 Validates Requirements: 1.1, 1.2, 1.3
 """
+
 from __future__ import annotations
 
 import pytest

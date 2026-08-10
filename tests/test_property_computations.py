@@ -41,9 +41,7 @@ class TestComputeWattHours:
         pulses=st.integers(min_value=0, max_value=10000),
         pulses_per_kwh=st.integers(min_value=1, max_value=10000),
     )
-    def test_watt_hours_formula_matches_spec(
-        self, pulses: int, pulses_per_kwh: int
-    ):
+    def test_watt_hours_formula_matches_spec(self, pulses: int, pulses_per_kwh: int):
         """For any valid inputs, result equals (pulses / pulses_per_kwh) * 1000.0."""
         result = compute_watt_hours(pulses, pulses_per_kwh)
         expected = (pulses / pulses_per_kwh) * 1000.0

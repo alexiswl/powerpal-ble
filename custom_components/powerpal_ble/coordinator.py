@@ -1,4 +1,5 @@
 """Coordinator for Powerpal BLE integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -52,7 +53,9 @@ class PowerpalCoordinator:
         self._pairing_code: int = entry.data[CONF_PAIRING_CODE]
         self._pulses_per_kwh: int = entry.data[CONF_PULSES_PER_KWH]
         self._notification_interval: int = entry.data[CONF_NOTIFICATION_INTERVAL]
-        self._bluez_bonding: bool = entry.data.get(CONF_BLUEZ_BONDING, DEFAULT_BLUEZ_BONDING)
+        self._bluez_bonding: bool = entry.data.get(
+            CONF_BLUEZ_BONDING, DEFAULT_BLUEZ_BONDING
+        )
 
         self._client: BleakClient | None = None
         self._connected = False
@@ -79,7 +82,9 @@ class PowerpalCoordinator:
         """Attach an API client for measurement uploads."""
         self._api_client = client
 
-    def async_add_listener(self, update_callback: Callable[[], None]) -> Callable[[], None]:
+    def async_add_listener(
+        self, update_callback: Callable[[], None]
+    ) -> Callable[[], None]:
         """Add a listener for data updates."""
         self._listeners.append(update_callback)
 
@@ -132,7 +137,8 @@ class PowerpalCoordinator:
                 except Exception as err:  # noqa: BLE001
                     self._consecutive_failures += 1
                     retry_interval = min(
-                        RECONNECT_INTERVAL * (BACKOFF_MULTIPLIER ** (self._consecutive_failures - 1)),
+                        RECONNECT_INTERVAL
+                        * (BACKOFF_MULTIPLIER ** (self._consecutive_failures - 1)),
                         MAX_RECONNECT_INTERVAL,
                     )
 
@@ -263,9 +269,7 @@ class PowerpalCoordinator:
 
         # Conditionally perform BlueZ bonding based on user configuration
         if self._bluez_bonding:
-            _LOGGER.debug(
-                "BlueZ bonding enabled for %s", self._mac_address
-            )
+            _LOGGER.debug("BlueZ bonding enabled for %s", self._mac_address)
             is_bonded = await self._check_bluez_bonded()
             if not is_bonded:
                 _LOGGER.info(
@@ -324,11 +328,11 @@ class PowerpalCoordinator:
                 f"Available: {all_chars}"
             )
 
-        _LOGGER.debug(
-            "Pairing characteristic properties: %s", target_char.properties
-        )
+        _LOGGER.debug("Pairing characteristic properties: %s", target_char.properties)
 
-        _LOGGER.debug("Writing pairing code to characteristic %s", CHAR_PAIRING_CODE_UUID)
+        _LOGGER.debug(
+            "Writing pairing code to characteristic %s", CHAR_PAIRING_CODE_UUID
+        )
 
         # The Powerpal authentication flow (from ESP32 reference):
         # 1. Write pairing code to characteristic
@@ -355,9 +359,7 @@ class PowerpalCoordinator:
                 )
             _LOGGER.debug("Subscribed to pairing code notifications")
         except (TimeoutError, BleakError) as err:
-            _LOGGER.debug(
-                "Could not subscribe to pairing notifications: %s", err
-            )
+            _LOGGER.debug("Could not subscribe to pairing notifications: %s", err)
 
         # Write pairing code (convert to little-endian 4-byte array)
         pairing_bytes = struct.pack("<I", self._pairing_code)
@@ -431,7 +433,9 @@ class PowerpalCoordinator:
                     await self._client.write_gatt_char(
                         CHAR_TIME_UUID, time_bytes, response=False
                     )
-                _LOGGER.info("Current timestamp written to device: %d", current_timestamp)
+                _LOGGER.info(
+                    "Current timestamp written to device: %d", current_timestamp
+                )
             except (TimeoutError, BleakError) as err:
                 _LOGGER.warning("Could not write timestamp to device: %s", err)
 
@@ -443,7 +447,9 @@ class PowerpalCoordinator:
         )
         meas_char = services.get_characteristic(CHAR_MEASUREMENT_UUID)
         if meas_char is None:
-            _LOGGER.error("Measurement characteristic %s not found!", CHAR_MEASUREMENT_UUID)
+            _LOGGER.error(
+                "Measurement characteristic %s not found!", CHAR_MEASUREMENT_UUID
+            )
         else:
             _LOGGER.debug(
                 "Measurement characteristic properties: %s", meas_char.properties
@@ -458,12 +464,17 @@ class PowerpalCoordinator:
                     CHAR_MEASUREMENT_UUID,
                 )
             except (TimeoutError, BleakError) as err:
-                _LOGGER.error("Could not subscribe to measurement notifications: %s", err)
+                _LOGGER.error(
+                    "Could not subscribe to measurement notifications: %s", err
+                )
 
         # Also subscribe to indications on 0002 (measurement access) in case
         # the device sends data there too
         meas_access_char = services.get_characteristic(CHAR_MEASUREMENT_ACCESS_UUID)
-        if meas_access_char and ("indicate" in meas_access_char.properties or "notify" in meas_access_char.properties):
+        if meas_access_char and (
+            "indicate" in meas_access_char.properties
+            or "notify" in meas_access_char.properties
+        ):
             try:
                 async with asyncio.timeout(10):
                     await self._client.start_notify(
@@ -474,7 +485,9 @@ class PowerpalCoordinator:
                     CHAR_MEASUREMENT_ACCESS_UUID,
                 )
             except (TimeoutError, BleakError) as err:
-                _LOGGER.debug("Could not subscribe to measurement access indications: %s", err)
+                _LOGGER.debug(
+                    "Could not subscribe to measurement access indications: %s", err
+                )
 
         # --- STEP 3: Write batch size / notification interval ---
         # Try writing as a single byte first (some firmware expects this),
@@ -553,7 +566,9 @@ class PowerpalCoordinator:
                 try:
                     async with asyncio.timeout(10):
                         await self._client.write_gatt_char(
-                            CHAR_MEASUREMENT_ACCESS_UUID, trigger_timestamp, response=True
+                            CHAR_MEASUREMENT_ACCESS_UUID,
+                            trigger_timestamp,
+                            response=True,
                         )
                     _LOGGER.info("Measurement trigger written (with response)")
                 except (TimeoutError, BleakError) as err2:
@@ -572,9 +587,7 @@ class PowerpalCoordinator:
         await self._read_device_info()
 
         self._connected = True
-        _LOGGER.info(
-            "Powerpal connected successfully. Device ID: %s", self.device_id
-        )
+        _LOGGER.info("Powerpal connected successfully. Device ID: %s", self.device_id)
 
     async def _check_bluez_bonded(self) -> bool:
         """Check if the device is already bonded in BlueZ."""
@@ -657,7 +670,11 @@ class PowerpalCoordinator:
                         line_str = line.decode(errors="replace").strip()
                         _LOGGER.debug("bluetoothctl: %s", line_str)
 
-                        if "Passkey" in line_str or "passkey" in line_str or "PIN" in line_str:
+                        if (
+                            "Passkey" in line_str
+                            or "passkey" in line_str
+                            or "PIN" in line_str
+                        ):
                             # Provide the passkey
                             passkey_str = f"{self._pairing_code}\n"
                             proc.stdin.write(passkey_str.encode())
@@ -670,14 +687,15 @@ class PowerpalCoordinator:
                             break
 
                         if "Failed" in line_str or "error" in line_str.lower():
-                            _LOGGER.warning(
-                                "BlueZ pairing issue: %s", line_str
-                            )
+                            _LOGGER.warning("BlueZ pairing issue: %s", line_str)
                             # Don't break — sometimes there are non-fatal errors
                             if "Pairing" in line_str and "failed" in line_str.lower():
                                 break
 
-                        if passkey_provided and ("Connected: yes" in line_str or "ServicesResolved" in line_str):
+                        if passkey_provided and (
+                            "Connected: yes" in line_str
+                            or "ServicesResolved" in line_str
+                        ):
                             # Pairing likely succeeded
                             _LOGGER.info("BlueZ pairing appears successful")
                             break
@@ -749,7 +767,10 @@ class PowerpalCoordinator:
                 self.api_key = self._decode_api_key(api_key_data)
                 _LOGGER.info("Powerpal API Key: %s", self.api_key)
             else:
-                _LOGGER.debug("API key data unexpected length: %d", len(api_key_data) if api_key_data else 0)
+                _LOGGER.debug(
+                    "API key data unexpected length: %d",
+                    len(api_key_data) if api_key_data else 0,
+                )
         except TimeoutError:
             _LOGGER.debug("Timed out reading API key from BLE")
         except BleakError as err:
@@ -761,7 +782,9 @@ class PowerpalCoordinator:
 
         try:
             # Read Device ID (4 bytes, little-endian)
-            _LOGGER.debug("Reading device ID from characteristic %s", CHAR_SERIAL_NUMBER_UUID)
+            _LOGGER.debug(
+                "Reading device ID from characteristic %s", CHAR_SERIAL_NUMBER_UUID
+            )
             async with asyncio.timeout(10):
                 device_id_data = await self._client.read_gatt_char(
                     CHAR_SERIAL_NUMBER_UUID
@@ -770,7 +793,10 @@ class PowerpalCoordinator:
                 self.device_id = self._decode_device_id(device_id_data[:4])
                 _LOGGER.info("Powerpal Device ID: %s", self.device_id)
             else:
-                _LOGGER.debug("Device ID data unexpected length: %d", len(device_id_data) if device_id_data else 0)
+                _LOGGER.debug(
+                    "Device ID data unexpected length: %d",
+                    len(device_id_data) if device_id_data else 0,
+                )
         except TimeoutError:
             _LOGGER.debug("Timed out reading device ID from BLE")
         except BleakError as err:
@@ -783,14 +809,10 @@ class PowerpalCoordinator:
         # Fall back to config entry values if BLE reads failed
         if self.api_key is None and conf_api_key:
             self.api_key = conf_api_key
-            _LOGGER.info(
-                "Using API key from configuration (BLE read not available)"
-            )
+            _LOGGER.info("Using API key from configuration (BLE read not available)")
         if self.device_id is None and conf_device_id:
             self.device_id = conf_device_id
-            _LOGGER.info(
-                "Using device ID from configuration (BLE read not available)"
-            )
+            _LOGGER.info("Using device ID from configuration (BLE read not available)")
 
     @staticmethod
     def _decode_api_key(data: bytes) -> str:
@@ -814,9 +836,7 @@ class PowerpalCoordinator:
             result.append(hexmap[byte & 0x0F])
         return "".join(result)
 
-    def _measurement_callback(
-        self, sender: Any, data: bytearray
-    ) -> None:
+    def _measurement_callback(self, sender: Any, data: bytearray) -> None:
         """Handle incoming measurement notifications from Powerpal.
 
         Observed packet format (20 bytes):

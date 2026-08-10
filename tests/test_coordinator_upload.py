@@ -6,6 +6,7 @@ These tests verify that:
 - BLE sensor values always update regardless of API client state (Property 11)
 - Upload scheduling is non-blocking via call_soon_threadsafe (Property 12)
 """
+
 from __future__ import annotations
 
 import struct
@@ -232,7 +233,9 @@ def test_non_blocking_upload(
     # Verify the upload_reading was called with the correct timestamp
     mock_api_client.upload_reading.assert_called_once()
     call_args = mock_api_client.upload_reading.call_args
-    actual_timestamp = call_args.args[0] if call_args.args else call_args.kwargs.get("timestamp")
+    actual_timestamp = (
+        call_args.args[0] if call_args.args else call_args.kwargs.get("timestamp")
+    )
     assert actual_timestamp == timestamp, (
         f"Expected upload timestamp={timestamp}, got {actual_timestamp}"
     )
@@ -240,7 +243,11 @@ def test_non_blocking_upload(
     # Verify the watt_hours argument is the correct conversion from kWh
     expected_energy_kwh = pulses / pulses_per_kwh
     expected_wh = expected_energy_kwh * 1000  # kWh to Wh
-    actual_wh = call_args.args[1] if len(call_args.args) > 1 else call_args.kwargs.get("watt_hours")
+    actual_wh = (
+        call_args.args[1]
+        if len(call_args.args) > 1
+        else call_args.kwargs.get("watt_hours")
+    )
     assert abs(actual_wh - expected_wh) < 1e-6, (
         f"Expected watt_hours={expected_wh}, got {actual_wh}"
     )
@@ -254,6 +261,5 @@ def test_non_blocking_upload(
     # Second arg to call_soon_threadsafe should be the coroutine from upload_reading
     scheduled_coro = upload_schedule_call.args[1]
     assert scheduled_coro == mock_api_client.upload_reading.return_value, (
-        f"Expected the upload coroutine to be scheduled, "
-        f"got {scheduled_coro}"
+        f"Expected the upload coroutine to be scheduled, got {scheduled_coro}"
     )

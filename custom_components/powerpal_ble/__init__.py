@@ -1,4 +1,5 @@
 """The Powerpal BLE integration."""
+
 from __future__ import annotations
 
 import logging
@@ -34,14 +35,10 @@ async def _fetch_historical(
         records = await api_client.fetch_historical_readings(days=365)
 
         if not records:
-            _LOGGER.info(
-                "Powerpal historical fetch: no records returned from API"
-            )
+            _LOGGER.info("Powerpal historical fetch: no records returned from API")
             return
 
-        _LOGGER.info(
-            "Powerpal historical fetch: received %d records", len(records)
-        )
+        _LOGGER.info("Powerpal historical fetch: received %d records", len(records))
 
         # Import into HA long-term statistics
         statistic_id = f"{DOMAIN}:{entry.entry_id}_energy_total"
@@ -77,9 +74,7 @@ async def _fetch_historical(
             cumulative_energy += record["watt_hours"] / 1000  # Wh to kWh
             statistics_data.append(
                 StatisticData(
-                    start=datetime.fromtimestamp(
-                        record["timestamp"], tz=UTC
-                    ),
+                    start=datetime.fromtimestamp(record["timestamp"], tz=UTC),
                     sum=cumulative_energy,
                 )
             )

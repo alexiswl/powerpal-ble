@@ -2,6 +2,7 @@
 
 Validates: Requirements 4.1, 4.2, 4.3
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

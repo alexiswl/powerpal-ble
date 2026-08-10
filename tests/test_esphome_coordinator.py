@@ -2,6 +2,7 @@
 
 Validates: Requirements 3.1, 3.2, 3.3, 3.5, 4.4
 """
+
 from __future__ import annotations
 
 import importlib
@@ -90,13 +91,17 @@ class TestFirstReading:
     def test_first_reading_sets_power(self):
         """First state change sets power to the received value."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "350.5")
@@ -108,13 +113,17 @@ class TestFirstReading:
     def test_first_reading_no_energy_accumulation(self):
         """First state change does NOT accumulate energy (no prior time reference)."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 5000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "1200.0")
@@ -134,13 +143,17 @@ class TestNonNumericStates:
     def test_non_numeric_state_ignored_no_prior_reading(self):
         """Non-numeric state with no prior reading leaves power as None."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "abc")
@@ -154,14 +167,18 @@ class TestNonNumericStates:
     def test_non_numeric_state_preserves_previous_power(self):
         """Non-numeric state after a valid reading preserves the previous power value."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
         # First: valid reading
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "500.0")
@@ -170,7 +187,9 @@ class TestNonNumericStates:
         assert coordinator.power == 500.0
 
         # Second: non-numeric — power should stay at 500.0
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "not_a_number")
@@ -184,13 +203,17 @@ class TestNonNumericStates:
     def test_empty_string_state_ignored(self):
         """Empty string state is treated as non-numeric and ignored."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "")
@@ -209,14 +232,18 @@ class TestUnavailableUnknownStates:
     def test_unavailable_state_ignored(self):
         """STATE_UNAVAILABLE is ignored, power stays unchanged."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
         # Set initial power
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "200.0")
@@ -225,7 +252,9 @@ class TestUnavailableUnknownStates:
         assert coordinator.power == 200.0
 
         # Send unavailable — should be ignored
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "unavailable")
@@ -238,14 +267,18 @@ class TestUnavailableUnknownStates:
     def test_unknown_state_ignored(self):
         """STATE_UNKNOWN is ignored, power stays unchanged."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
         # Set initial power
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 2000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "750.0")
@@ -254,7 +287,9 @@ class TestUnavailableUnknownStates:
         assert coordinator.power == 750.0
 
         # Send unknown — should be ignored
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 2060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "unknown")
@@ -268,28 +303,36 @@ class TestUnavailableUnknownStates:
         """After unavailable, the next valid reading computes energy from the
         ORIGINAL time, not the time of the unavailable event."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
         # First valid reading at t=1000
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "600.0")
             callback_fn(event)
 
         # Unavailable at t=1030 — should be ignored entirely
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1030.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "unavailable")
             callback_fn(event)
 
         # Next valid reading at t=1060 — delta should be 60s from t=1000
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "600.0")
@@ -310,20 +353,26 @@ class TestMidnightDailyEnergyReset:
     def test_midnight_resets_daily_energy_only(self):
         """_handle_midnight resets daily_energy_kwh to 0 but leaves energy_total_kwh."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
         # Simulate two readings to accumulate some energy
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "1000.0")
             callback_fn(event)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "1000.0")
@@ -335,7 +384,9 @@ class TestMidnightDailyEnergyReset:
         assert abs(coordinator.energy_total_kwh - expected_energy) < 1e-9
 
         # Trigger midnight reset
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.localtime.return_value = MagicMock(tm_yday=2)
             coordinator._handle_midnight(None)
 
@@ -347,16 +398,20 @@ class TestMidnightDailyEnergyReset:
     def test_midnight_notifies_listeners(self):
         """_handle_midnight notifies registered listeners."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
         coordinator, _callback_fn, cancel = _start_coordinator(hass, entry)
 
         listener = MagicMock()
         coordinator.async_add_listener(listener)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.localtime.return_value = MagicMock(tm_yday=2)
             coordinator._handle_midnight(None)
 
@@ -373,10 +428,12 @@ class TestBackwardCompatibilityPulseEntity:
     def test_pulse_entity_key_used_as_source(self):
         """When only CONF_ESPHOME_PULSE_ENTITY is present, it is used as the source entity."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
         assert coordinator._source_entity == "sensor.powerpal_pulses"
@@ -384,13 +441,17 @@ class TestBackwardCompatibilityPulseEntity:
     def test_pulse_entity_processes_state_changes(self):
         """Coordinator with old config key processes state events for that entity."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
+            }
+        )
         coordinator, callback_fn, cancel = _start_coordinator(hass, entry)
 
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_pulses", "425.0")
@@ -402,11 +463,13 @@ class TestBackwardCompatibilityPulseEntity:
     def test_power_entity_takes_precedence_over_pulse_entity(self):
         """When both keys exist, CONF_ESPHOME_POWER_ENTITY takes precedence."""
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-            CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+                CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
         assert coordinator._source_entity == "sensor.powerpal_power"

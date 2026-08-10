@@ -1,5 +1,6 @@
 # Feature: esphome-config-flow-option, Property 1: Bluetooth discovery address preservation
 """Property-based tests for address preservation through connection_mode routing."""
+
 from unittest.mock import MagicMock
 
 import pytest

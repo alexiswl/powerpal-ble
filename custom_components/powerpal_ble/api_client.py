@@ -1,4 +1,5 @@
 """Async client for the Powerpal readings API."""
+
 from __future__ import annotations
 
 import asyncio
@@ -42,9 +43,7 @@ class PowerpalApiClient:
         """True if client received 401 and should stop uploading."""
         return self._disabled
 
-    async def upload_reading(
-        self, timestamp: int, watt_hours: float
-    ) -> bool:
+    async def upload_reading(self, timestamp: int, watt_hours: float) -> bool:
         """Upload a single measurement. Returns True on success.
 
         Non-blocking from caller's perspective (caller uses create_task).
@@ -57,8 +56,14 @@ class PowerpalApiClient:
 
         try:
             url = f"{self.BASE_URL}meter_reading/{self._device_id}"
-            payload = [{"timestamp": timestamp, "watt_hours": watt_hours,
-                        "cost": 0, "is_peak": False}]
+            payload = [
+                {
+                    "timestamp": timestamp,
+                    "watt_hours": watt_hours,
+                    "cost": 0,
+                    "is_peak": False,
+                }
+            ]
             timeout = aiohttp.ClientTimeout(total=self.UPLOAD_TIMEOUT)
 
             max_retries = 3
@@ -121,16 +126,12 @@ class PowerpalApiClient:
                     return False
 
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning(
-                "Unexpected error during Powerpal API upload: %s", err
-            )
+            _LOGGER.warning("Unexpected error during Powerpal API upload: %s", err)
             return False
 
         return False
 
-    async def fetch_historical_readings(
-        self, days: int = 365
-    ) -> list[dict[str, Any]]:
+    async def fetch_historical_readings(self, days: int = 365) -> list[dict[str, Any]]:
         """Fetch historical readings for the past N days.
 
         Returns list of {"timestamp": int, "watt_hours": float} dicts.
@@ -189,9 +190,7 @@ class PowerpalApiClient:
                 return []
 
         except (TimeoutError, aiohttp.ClientError) as err:
-            _LOGGER.warning(
-                "Network error fetching Powerpal historical data: %s", err
-            )
+            _LOGGER.warning("Network error fetching Powerpal historical data: %s", err)
             return []
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning(

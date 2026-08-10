@@ -5,6 +5,7 @@ Validates Requirements 6.1, 6.2, 6.3, 6.4, 6.5:
 - BLE-only mode produces clean logs (no API warnings/errors)
 - BLE sensors continue updating regardless of API client state
 """
+
 from __future__ import annotations
 
 import logging

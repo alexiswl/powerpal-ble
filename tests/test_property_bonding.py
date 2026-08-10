@@ -1,5 +1,6 @@
 # Feature: optional-bluez-bonding, Property 1: Backward-compatible default resolution
 """Property-based tests for the optional BlueZ bonding feature."""
+
 import sys
 from unittest.mock import MagicMock
 
@@ -121,7 +122,11 @@ def _make_mock_bleak_client():
     return client
 
 
-@settings(max_examples=100, suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@settings(
+    max_examples=100,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+    deadline=None,
+)
 @given(data=config_entry_data_with_bonding)
 @pytest.mark.asyncio
 async def test_bonding_setting_determines_bonding_call_execution(data: dict) -> None:

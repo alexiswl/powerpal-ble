@@ -5,6 +5,7 @@ This coordinator listens to state changes from an ESPHome sensor entity
 It provides the same interface as the BLE coordinator so sensor entities
 work with either backend.
 """
+
 from __future__ import annotations
 
 import logging
@@ -175,8 +176,7 @@ class ESPHomeCoordinator:
         self._last_reading_time = now
 
         _LOGGER.debug(
-            "ESPHome power update: power=%.1f W, "
-            "total=%.4f kWh, daily=%.4f kWh",
+            "ESPHome power update: power=%.1f W, total=%.4f kWh, daily=%.4f kWh",
             self.power,
             self.energy_total_kwh,
             self.daily_energy_kwh,

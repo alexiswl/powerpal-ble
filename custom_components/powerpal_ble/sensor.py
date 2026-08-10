@@ -1,4 +1,5 @@
 """Sensor platform for Powerpal BLE integration."""
+
 from __future__ import annotations
 
 import logging
@@ -90,9 +91,7 @@ class PowerpalSensorBase(SensorEntity):
 
     async def async_added_to_hass(self) -> None:
         """Register listener when entity is added."""
-        self.async_on_remove(
-            self._coordinator.async_add_listener(self._handle_update)
-        )
+        self.async_on_remove(self._coordinator.async_add_listener(self._handle_update))
 
     @callback
     def _handle_update(self) -> None:

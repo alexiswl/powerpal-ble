@@ -1,6 +1,7 @@
 # Feature: powerpal-api-integration, Property 1: Config Flow Credential Storage Round-Trip
 # Feature: powerpal-api-integration, Property 2: Config Flow Validation Rejects Invalid Credentials
 """Property-based tests for config flow credential handling."""
+
 from __future__ import annotations
 
 import re
@@ -33,10 +34,12 @@ bluez_bonding_values = st.booleans()
 
 # Invalid API keys: strings that don't match UUID format
 invalid_api_keys = st.text(min_size=1, max_size=50).filter(
-    lambda s: not re.match(
-        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-        s,
-        re.IGNORECASE,
+    lambda s: (
+        not re.match(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+            s,
+            re.IGNORECASE,
+        )
     )
 )
 

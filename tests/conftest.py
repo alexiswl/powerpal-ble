@@ -3,6 +3,7 @@
 Mocks the homeassistant package at import time so tests can import
 custom_components.powerpal_ble modules without a full HA installation.
 """
+
 from __future__ import annotations
 
 import sys

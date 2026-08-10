@@ -1,6 +1,7 @@
 # Feature: powerpal-api-integration, Property 4: Upload Request Construction
 # Feature: powerpal-api-integration, Property 5: Fetch Request Construction
 """Property-based tests for API client request construction."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -129,9 +130,7 @@ async def test_upload_request_construction(
     # URL: first positional arg or 'url' kwarg
     actual_url = args[0] if args else kwargs.get("url")
     expected_url = f"https://readings.powerpal.net/api/v1/meter_reading/{device_id}"
-    assert actual_url == expected_url, (
-        f"Expected URL {expected_url}, got {actual_url}"
-    )
+    assert actual_url == expected_url, f"Expected URL {expected_url}, got {actual_url}"
 
     # Authorization header must be the exact API key
     actual_headers = kwargs.get("headers", {})
@@ -144,7 +143,9 @@ async def test_upload_request_construction(
 
     # JSON body must be an array with a reading containing timestamp and watt_hours
     actual_json = kwargs.get("json", [])
-    assert isinstance(actual_json, list), f"JSON body should be a list, got {type(actual_json)}"
+    assert isinstance(actual_json, list), (
+        f"JSON body should be a list, got {type(actual_json)}"
+    )
     assert len(actual_json) == 1, f"Expected 1 reading in array, got {len(actual_json)}"
     reading = actual_json[0]
     assert "timestamp" in reading, "JSON reading missing 'timestamp' field"
@@ -215,9 +216,7 @@ async def test_fetch_request_construction(
     # URL: first positional arg or 'url' kwarg
     actual_url = args[0] if args else kwargs.get("url")
     expected_url = f"https://readings.powerpal.net/api/v1/device/{device_id}/readings"
-    assert actual_url == expected_url, (
-        f"Expected URL {expected_url}, got {actual_url}"
-    )
+    assert actual_url == expected_url, f"Expected URL {expected_url}, got {actual_url}"
 
     # Authorization header must be the exact API key
     actual_headers = kwargs.get("headers", {})
@@ -238,9 +237,9 @@ async def test_fetch_request_construction(
     )
 
     # start and end should be non-empty strings (ISO 8601 format)
-    assert isinstance(actual_params["start"], str) and len(actual_params["start"]) > 0, (
-        f"'start' param should be a non-empty string, got: {actual_params['start']}"
-    )
+    assert (
+        isinstance(actual_params["start"], str) and len(actual_params["start"]) > 0
+    ), f"'start' param should be a non-empty string, got: {actual_params['start']}"
     assert isinstance(actual_params["end"], str) and len(actual_params["end"]) > 0, (
         f"'end' param should be a non-empty string, got: {actual_params['end']}"
     )
@@ -283,10 +282,47 @@ subsequent_attempts = st.integers(min_value=1, max_value=5)
 
 # Non-retryable HTTP error codes (excluding 401 and 429)
 non_retryable_status_codes = st.sampled_from(
-    [400, 402, 403, 404, 405, 406, 407, 408, 409, 410,
-     411, 412, 413, 414, 415, 416, 417, 418, 422, 423,
-     424, 425, 426, 427, 428, 430, 431, 451,
-     500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511]
+    [
+        400,
+        402,
+        403,
+        404,
+        405,
+        406,
+        407,
+        408,
+        409,
+        410,
+        411,
+        412,
+        413,
+        414,
+        415,
+        416,
+        417,
+        418,
+        422,
+        423,
+        424,
+        425,
+        426,
+        427,
+        428,
+        430,
+        431,
+        451,
+        500,
+        501,
+        502,
+        503,
+        504,
+        505,
+        506,
+        507,
+        508,
+        510,
+        511,
+    ]
 )
 
 # 2xx success status codes

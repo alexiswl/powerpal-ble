@@ -2,6 +2,7 @@
 
 Uses Hypothesis to verify universal properties of the ESPHomeCoordinator class.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -77,8 +78,12 @@ def test_coordinator_interprets_state_as_power_directly(power_value: float):
 @given(
     readings=st.lists(
         st.tuples(
-            st.floats(min_value=0, max_value=10000, allow_nan=False, allow_infinity=False),
-            st.floats(min_value=0.1, max_value=3600, allow_nan=False, allow_infinity=False),
+            st.floats(
+                min_value=0, max_value=10000, allow_nan=False, allow_infinity=False
+            ),
+            st.floats(
+                min_value=0.1, max_value=3600, allow_nan=False, allow_infinity=False
+            ),
         ),
         min_size=2,
         max_size=20,
@@ -104,7 +109,9 @@ def test_energy_integration_accumulation(readings):
 
     # Fire events, patching time.time() to control timestamps
     for i, (power_w, _time_delta) in enumerate(readings):
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = timestamps[i]
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event(entity_id, str(power_w))
