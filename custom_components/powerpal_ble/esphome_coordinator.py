@@ -134,12 +134,10 @@ class ESPHomeCoordinator:
         if event.data.get("entity_id") != self._source_entity:
             return
 
-        new_state = event.data.get("new_state")
-        if new_state is None:
+        if (new_state := event.data.get("new_state")) is None:
             return
 
-        state_value = new_state.state
-        if state_value in (None, STATE_UNKNOWN, STATE_UNAVAILABLE):
+        if (state_value := new_state.state) in (None, STATE_UNKNOWN, STATE_UNAVAILABLE):
             return
 
         try:
@@ -165,8 +163,7 @@ class ESPHomeCoordinator:
 
         # Compute energy increment if we have a previous reading time
         if self._last_reading_time is not None:
-            time_delta_seconds = now - self._last_reading_time
-            if time_delta_seconds > 0:
+            if (time_delta_seconds := now - self._last_reading_time) > 0:
                 # Convert W·s to kWh: power_w * seconds / 3_600_000
                 energy_kwh = power_w * time_delta_seconds / 3_600_000
                 self.energy_total_kwh += energy_kwh

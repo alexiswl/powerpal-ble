@@ -66,8 +66,7 @@ class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle connection mode selection after Bluetooth discovery."""
         if user_input is not None:
-            mode = user_input[CONF_CONNECTION_MODE]
-            if mode == CONNECTION_MODE_ESPHOME:
+            if user_input[CONF_CONNECTION_MODE] == CONNECTION_MODE_ESPHOME:
                 return await self.async_step_esphome()
             return await self.async_step_pairing()
 
@@ -93,8 +92,7 @@ class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle the user step — choose connection mode."""
         if user_input is not None:
-            mode = user_input[CONF_CONNECTION_MODE]
-            if mode == CONNECTION_MODE_ESPHOME:
+            if user_input[CONF_CONNECTION_MODE] == CONNECTION_MODE_ESPHOME:
                 return await self.async_step_esphome()
             return await self.async_step_ble_device()
 

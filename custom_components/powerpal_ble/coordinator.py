@@ -132,9 +132,7 @@ class PowerpalCoordinator:
                         await self._connect()
                         # Reset backoff on successful connection
                         self._consecutive_failures = 0
-                except asyncio.CancelledError:
-                    raise
-                except Exception as err:  # noqa: BLE001
+                except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
                     self._consecutive_failures += 1
                     retry_interval = min(
                         RECONNECT_INTERVAL
@@ -212,7 +210,7 @@ class PowerpalCoordinator:
             pass
         return None
 
-    async def _connect(self) -> None:
+    async def _connect(self) -> None:  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """Establish connection and subscribe to notifications.
 
         The Powerpal requires BLE-level encryption (bonding) before it
@@ -270,8 +268,7 @@ class PowerpalCoordinator:
         # Conditionally perform BlueZ bonding based on user configuration
         if self._bluez_bonding:
             _LOGGER.debug("BlueZ bonding enabled for %s", self._mac_address)
-            is_bonded = await self._check_bluez_bonded()
-            if not is_bonded:
+            if not await self._check_bluez_bonded():
                 _LOGGER.info(
                     "Powerpal not bonded at BlueZ level. "
                     "Attempting to pair with passkey %d...",
@@ -297,8 +294,7 @@ class PowerpalCoordinator:
         _LOGGER.debug("Connected to Powerpal, discovering services")
 
         # Explicitly discover services and log what's available
-        services = self._client.services
-        if services is None:
+        if (services := self._client.services) is None:
             services = await self._client.get_services()
 
         # Log all discovered services and characteristics for diagnostics
@@ -311,8 +307,7 @@ class PowerpalCoordinator:
             )
 
         # Verify our target characteristic exists before writing
-        target_char = services.get_characteristic(CHAR_PAIRING_CODE_UUID)
-        if target_char is None:
+        if (target_char := services.get_characteristic(CHAR_PAIRING_CODE_UUID)) is None:
             all_chars = []
             for service in services:
                 for char in service.characteristics:
@@ -344,7 +339,7 @@ class PowerpalCoordinator:
         # to catch any authentication confirmation
         auth_confirmed = asyncio.Event()
 
-        def _pairing_notify_callback(sender: Any, data: bytearray) -> None:
+        def _pairing_notify_callback(_sender: Any, data: bytearray) -> None:
             _LOGGER.debug(
                 "Received notification on pairing characteristic: %s",
                 data.hex(),
@@ -407,7 +402,7 @@ class PowerpalCoordinator:
         # Unsubscribe from pairing notifications
         try:
             await self._client.stop_notify(CHAR_PAIRING_CODE_UUID)
-        except (BleakError, Exception):  # noqa: BLE001
+        except Exception:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _LOGGER.debug("Failed to stop pairing notifications (non-critical)")
 
         # Small delay to allow authentication to process
@@ -423,8 +418,7 @@ class PowerpalCoordinator:
             current_timestamp,
             CHAR_TIME_UUID,
         )
-        time_char = services.get_characteristic(CHAR_TIME_UUID)
-        if time_char is None:
+        if (time_char := services.get_characteristic(CHAR_TIME_UUID)) is None:
             _LOGGER.warning("Time characteristic %s not found", CHAR_TIME_UUID)
         else:
             _LOGGER.debug("Time characteristic properties: %s", time_char.properties)
@@ -445,8 +439,7 @@ class PowerpalCoordinator:
             "Subscribing to measurement notifications on %s",
             CHAR_MEASUREMENT_UUID,
         )
-        meas_char = services.get_characteristic(CHAR_MEASUREMENT_UUID)
-        if meas_char is None:
+        if (meas_char := services.get_characteristic(CHAR_MEASUREMENT_UUID)) is None:
             _LOGGER.error(
                 "Measurement characteristic %s not found!", CHAR_MEASUREMENT_UUID
             )
@@ -499,8 +492,9 @@ class PowerpalCoordinator:
             CHAR_READING_BATCH_SIZE_UUID,
         )
 
-        batch_char = services.get_characteristic(CHAR_READING_BATCH_SIZE_UUID)
-        if batch_char is None:
+        if (
+            batch_char := services.get_characteristic(CHAR_READING_BATCH_SIZE_UUID)
+        ) is None:
             _LOGGER.warning(
                 "Batch size characteristic %s not found — skipping",
                 CHAR_READING_BATCH_SIZE_UUID,
@@ -511,10 +505,10 @@ class PowerpalCoordinator:
             )
             # Try single byte first (most common for Powerpal)
             wrote_batch = False
-            for payload, desc in [
+            for payload, desc in (
                 (struct.pack("<B", min(interval_val, 255)), "uint8"),
                 (struct.pack("<I", interval_val), "uint32"),
-            ]:
+            ):
                 try:
                     async with asyncio.timeout(10):
                         await self._client.write_gatt_char(
@@ -611,7 +605,7 @@ class PowerpalCoordinator:
             _LOGGER.debug("Could not check BlueZ bond status: %s", err)
         return False
 
-    async def _bluez_pair(self) -> None:
+    async def _bluez_pair(self) -> None:  # pylint: disable=too-many-branches,too-many-statements
         """Pair the Powerpal device via BlueZ using the pairing code as passkey.
 
         This sets up a BlueZ agent to provide the passkey, then initiates
@@ -664,8 +658,7 @@ class PowerpalCoordinator:
             try:
                 async with asyncio.timeout(30):
                     while True:
-                        line = await proc.stdout.readline()
-                        if not line:
+                        if not (line := await proc.stdout.readline()):
                             break
                         line_str = line.decode(errors="replace").strip()
                         _LOGGER.debug("bluetoothctl: %s", line_str)
@@ -719,8 +712,7 @@ class PowerpalCoordinator:
             await asyncio.sleep(3)
 
             # Verify pairing worked
-            is_bonded = await self._check_bluez_bonded()
-            if is_bonded:
+            if await self._check_bluez_bonded():
                 _LOGGER.info("Powerpal successfully bonded at BlueZ level")
             else:
                 _LOGGER.warning(
@@ -738,7 +730,7 @@ class PowerpalCoordinator:
                 self._mac_address,
                 self._pairing_code,
             )
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _LOGGER.warning("Unexpected error during BlueZ pairing: %s", err)
 
     async def _read_device_info(self) -> None:
@@ -836,7 +828,7 @@ class PowerpalCoordinator:
             result.append(hexmap[byte & 0x0F])
         return "".join(result)
 
-    def _measurement_callback(self, sender: Any, data: bytearray) -> None:
+    def _measurement_callback(self, _sender: Any, data: bytearray) -> None:
         """Handle incoming measurement notifications from Powerpal.
 
         Observed packet format (20 bytes):
@@ -940,7 +932,7 @@ class PowerpalCoordinator:
             try:
                 async with asyncio.timeout(5):
                     await self._client.disconnect()
-            except (TimeoutError, BleakError, Exception):  # noqa: BLE001
+            except (TimeoutError, BleakError):
                 _LOGGER.debug("Error during disconnect (non-critical)")
             self._client = None
 

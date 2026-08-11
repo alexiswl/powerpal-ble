@@ -32,9 +32,7 @@ async def _fetch_historical(
 ) -> None:
     """Fetch historical data from Powerpal API and import to HA statistics."""
     try:
-        records = await api_client.fetch_historical_readings(days=365)
-
-        if not records:
+        if not (records := await api_client.fetch_historical_readings(days=365)):
             _LOGGER.info("Powerpal historical fetch: no records returned from API")
             return
 
@@ -44,11 +42,11 @@ async def _fetch_historical(
         statistic_id = f"{DOMAIN}:{entry.entry_id}_energy_total"
 
         try:
-            from homeassistant.components.recorder.models import (
+            from homeassistant.components.recorder.models import (  # pylint: disable=import-outside-toplevel
                 StatisticData,
                 StatisticMetaData,
             )
-            from homeassistant.components.recorder.statistics import (
+            from homeassistant.components.recorder.statistics import (  # pylint: disable=import-outside-toplevel
                 async_import_statistics,
             )
         except ImportError:
@@ -87,7 +85,7 @@ async def _fetch_historical(
             len(statistics_data),
         )
 
-    except Exception as err:  # noqa: BLE001
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as err:
         _LOGGER.warning("Powerpal historical data fetch failed: %s", err)
 
 
@@ -96,11 +94,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     connection_mode = entry.data.get(CONF_CONNECTION_MODE, DEFAULT_CONNECTION_MODE)
 
     if connection_mode == CONNECTION_MODE_ESPHOME:
-        from .esphome_coordinator import ESPHomeCoordinator
+        from .esphome_coordinator import (
+            ESPHomeCoordinator,  # pylint: disable=import-outside-toplevel
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
     else:
-        from .coordinator import PowerpalCoordinator
+        from .coordinator import (
+            PowerpalCoordinator,  # pylint: disable=import-outside-toplevel
+        )
 
         coordinator = PowerpalCoordinator(hass, entry)
 

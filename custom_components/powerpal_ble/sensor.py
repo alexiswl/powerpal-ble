@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, TypeAlias
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 # Type alias for either coordinator
-CoordinatorType = Union["PowerpalCoordinator", "ESPHomeCoordinator"]
+CoordinatorType: TypeAlias = "PowerpalCoordinator | ESPHomeCoordinator"
 
 
 async def async_setup_entry(

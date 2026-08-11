@@ -43,7 +43,7 @@ class PowerpalApiClient:
         """True if client received 401 and should stop uploading."""
         return self._disabled
 
-    async def upload_reading(self, timestamp: int, watt_hours: float) -> bool:
+    async def upload_reading(self, timestamp: int, watt_hours: float) -> bool:  # pylint: disable=too-many-return-statements
         """Upload a single measurement. Returns True on success.
 
         Non-blocking from caller's perspective (caller uses create_task).
@@ -125,13 +125,13 @@ class PowerpalApiClient:
                     )
                     return False
 
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _LOGGER.warning("Unexpected error during Powerpal API upload: %s", err)
             return False
 
         return False
 
-    async def fetch_historical_readings(self, days: int = 365) -> list[dict[str, Any]]:
+    async def fetch_historical_readings(self, days: int = 365) -> list[dict[str, Any]]:  # pylint: disable=too-many-return-statements
         """Fetch historical readings for the past N days.
 
         Returns list of {"timestamp": int, "watt_hours": float} dicts.
@@ -170,8 +170,7 @@ class PowerpalApiClient:
                     return []
 
                 if resp.status >= 200 and resp.status < 300:
-                    data = await resp.json()
-                    if not data:
+                    if not (data := await resp.json()):
                         return []
                     return [
                         {
@@ -192,7 +191,7 @@ class PowerpalApiClient:
         except (TimeoutError, aiohttp.ClientError) as err:
             _LOGGER.warning("Network error fetching Powerpal historical data: %s", err)
             return []
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _LOGGER.warning(
                 "Unexpected error fetching Powerpal historical data: %s", err
             )
