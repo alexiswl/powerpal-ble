@@ -100,14 +100,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     coordinator: PowerpalCoordinator | ESPHomeCoordinator
     if connection_mode == CONNECTION_MODE_ESPHOME:
-        from .esphome_coordinator import (
-            ESPHomeCoordinator,  # pylint: disable=import-outside-toplevel
+        from .esphome_coordinator import (  # pylint: disable=import-outside-toplevel
+            ESPHomeCoordinator,
         )
 
         coordinator = ESPHomeCoordinator(hass, entry)
     else:
-        from .coordinator import (
-            PowerpalCoordinator,  # pylint: disable=import-outside-toplevel
+        from .coordinator import (  # pylint: disable=import-outside-toplevel
+            PowerpalCoordinator,
         )
 
         coordinator = PowerpalCoordinator(hass, entry)

@@ -48,6 +48,7 @@ class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg
 
     def __init__(self) -> None:
         """Initialize the config flow."""
+        super().__init__()
         self._discovery_info: BluetoothServiceInfoBleak | None = None
         self._discovered_address: str | None = None
 
