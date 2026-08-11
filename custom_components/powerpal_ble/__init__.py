@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -19,6 +20,10 @@ from .const import (
     DEFAULT_CONNECTION_MODE,
     DOMAIN,
 )
+
+if TYPE_CHECKING:
+    from .coordinator import PowerpalCoordinator
+    from .esphome_coordinator import ESPHomeCoordinator
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
@@ -93,6 +98,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Powerpal BLE from a config entry."""
     connection_mode = entry.data.get(CONF_CONNECTION_MODE, DEFAULT_CONNECTION_MODE)
 
+    coordinator: PowerpalCoordinator | ESPHomeCoordinator
     if connection_mode == CONNECTION_MODE_ESPHOME:
         from .esphome_coordinator import (
             ESPHomeCoordinator,  # pylint: disable=import-outside-toplevel

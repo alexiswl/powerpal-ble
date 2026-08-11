@@ -96,7 +96,7 @@ class PowerpalApiClient:
                                 return False
                             retry_after = resp.headers.get("Retry-After")
                             try:
-                                wait_seconds = int(retry_after)
+                                wait_seconds = int(retry_after) if retry_after else 60
                             except (TypeError, ValueError):
                                 wait_seconds = 60
                             _LOGGER.debug(

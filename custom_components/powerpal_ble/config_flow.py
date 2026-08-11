@@ -41,7 +41,7 @@ API_KEY_PATTERN = re.compile(
 )
 
 
-class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
+class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Powerpal BLE."""
 
     VERSION = 1

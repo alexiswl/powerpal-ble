@@ -295,7 +295,7 @@ class PowerpalCoordinator:
 
         # Explicitly discover services and log what's available
         if (services := self._client.services) is None:
-            services = await self._client.get_services()
+            services = await self._client.get_services()  # type: ignore[union-attr]
 
         # Log all discovered services and characteristics for diagnostics
         for service in services:
@@ -650,6 +650,8 @@ class PowerpalCoordinator:
             _LOGGER.debug("Sending bluetoothctl pair commands")
 
             # Write initial commands
+            if proc.stdin is None or proc.stdout is None:
+                raise OSError("bluetoothctl subprocess pipes not available")
             proc.stdin.write(commands.encode())
             await proc.stdin.drain()
 
@@ -701,8 +703,9 @@ class PowerpalCoordinator:
                 )
 
             # Clean up
-            proc.stdin.write(b"quit\n")
-            await proc.stdin.drain()
+            if proc.stdin is not None:
+                proc.stdin.write(b"quit\n")
+                await proc.stdin.drain()
             try:
                 await asyncio.wait_for(proc.wait(), timeout=5)
             except TimeoutError:
@@ -807,7 +810,7 @@ class PowerpalCoordinator:
             _LOGGER.info("Using device ID from configuration (BLE read not available)")
 
     @staticmethod
-    def _decode_api_key(data: bytes) -> str:
+    def _decode_api_key(data: bytes | bytearray) -> str:
         """Decode 16 bytes into a UUID-formatted API key string."""
         hexmap = "0123456789abcdef"
         result = []
@@ -819,7 +822,7 @@ class PowerpalCoordinator:
         return "".join(result)
 
     @staticmethod
-    def _decode_device_id(data: bytes) -> str:
+    def _decode_device_id(data: bytes | bytearray) -> str:
         """Decode 4 bytes (little-endian) into a hex device ID string."""
         hexmap = "0123456789abcdef"
         result = []
