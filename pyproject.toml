@@ -1,0 +1,50 @@
+[tool.ruff]
+target-version = "py311"
+src = ["custom_components"]
+
+[tool.ruff.lint]
+select = [
+    "B",      # flake8-bugbear
+    "E",      # pycodestyle errors
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "S",      # flake8-bandit (security)
+    "UP",     # pyupgrade
+    "W",      # pycodestyle warnings
+    "BLE",    # flake8-blind-except
+    "RUF",    # ruff-specific rules
+]
+ignore = [
+    "E501",   # line length handled by formatter
+    "S603",   # subprocess call - needed for bluetoothctl
+    "S607",   # partial executable path - needed for bluetoothctl
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "E402"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+show_error_codes = true
+follow_imports = "silent"
+ignore_missing_imports = true
+warn_incomplete_stub = true
+warn_redundant_casts = true
+warn_unused_configs = true
+
+[tool.codespell]
+ignore-words-list = "hass,ble"
+skip = ".git,*.json"

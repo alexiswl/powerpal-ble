@@ -7,10 +7,11 @@ which upserts records by start timestamp. This test verifies that:
    async_import_statistics, each with a unique timestamp.
 2. The function correctly delegates deduplication responsibility to HA's recorder.
 """
+
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -122,11 +123,14 @@ async def test_historical_import_deduplication(records: list[dict]) -> None:
 
     recorder_mod = MagicMock()
 
-    with patch.dict(sys.modules, {
-        "homeassistant.components.recorder": recorder_mod,
-        "homeassistant.components.recorder.statistics": recorder_stats_mod,
-        "homeassistant.components.recorder.models": recorder_models_mod,
-    }):
+    with patch.dict(
+        sys.modules,
+        {
+            "homeassistant.components.recorder": recorder_mod,
+            "homeassistant.components.recorder.statistics": recorder_stats_mod,
+            "homeassistant.components.recorder.models": recorder_models_mod,
+        },
+    ):
         from custom_components.powerpal_ble import _fetch_historical
 
         await _fetch_historical(mock_hass, mock_api_client, mock_entry)
@@ -141,7 +145,7 @@ async def test_historical_import_deduplication(records: list[dict]) -> None:
         f"Expected 3 positional args (hass, metadata, stats), got {len(positional)}"
     )
 
-    _, metadata, statistics_data = positional
+    _, _metadata, statistics_data = positional
 
     # Property: count of imported records equals count of input records
     assert len(statistics_data) == len(records), (
@@ -156,8 +160,7 @@ async def test_historical_import_deduplication(records: list[dict]) -> None:
 
     # Property: timestamps correspond to the input records
     expected_timestamps = {
-        datetime.fromtimestamp(r["timestamp"], tz=timezone.utc)
-        for r in records
+        datetime.fromtimestamp(r["timestamp"], tz=UTC) for r in records
     }
     actual_timestamps = set(timestamps)
     assert actual_timestamps == expected_timestamps, (

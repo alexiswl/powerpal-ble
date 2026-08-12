@@ -1,4 +1,5 @@
 """Smoke test to verify test infrastructure works."""
+
 from custom_components.powerpal_ble.const import DOMAIN
 
 

@@ -1,8 +1,7 @@
 # Feature: optional-bluez-bonding, Property 1: Backward-compatible default resolution
 """Property-based tests for the optional BlueZ bonding feature."""
-import importlib
+
 import sys
-from types import ModuleType
 from unittest.mock import MagicMock
 
 from hypothesis import given, settings
@@ -22,11 +21,10 @@ sys.modules.setdefault("bleak", _ha_stub)
 sys.modules.setdefault("bleak_retry_connector", _ha_stub)
 sys.modules.setdefault("bluetooth_adapters", _ha_stub)
 
-from custom_components.powerpal_ble.const import (  # noqa: E402
+from custom_components.powerpal_ble.const import (
     CONF_BLUEZ_BONDING,
     DEFAULT_BLUEZ_BONDING,
 )
-
 
 # Strategy: generate config entry data dicts with required keys but WITHOUT bluez_bonding
 config_entry_data_without_bonding = st.fixed_dictionaries(
@@ -63,22 +61,16 @@ def test_backward_compatible_default_resolution(data: dict) -> None:
 
 
 # Feature: optional-bluez-bonding, Property 2: Bonding setting determines bonding call execution
-import asyncio
 import struct
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from hypothesis import HealthCheck, given, settings  # noqa: F811
-from hypothesis import strategies as st  # noqa: F811
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from custom_components.powerpal_ble.const import (
     CHAR_PAIRING_CODE_UUID,
-    CONF_MAC_ADDRESS,
-    CONF_NOTIFICATION_INTERVAL,
-    CONF_PAIRING_CODE,
-    CONF_PULSES_PER_KWH,
 )
-
 
 # Strategy: generate config entry data dicts WITH bluez_bonding as a boolean
 config_entry_data_with_bonding = st.fixed_dictionaries(
@@ -130,7 +122,11 @@ def _make_mock_bleak_client():
     return client
 
 
-@settings(max_examples=100, suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
+@settings(
+    max_examples=100,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+    deadline=None,
+)
 @given(data=config_entry_data_with_bonding)
 @pytest.mark.asyncio
 async def test_bonding_setting_determines_bonding_call_execution(data: dict) -> None:

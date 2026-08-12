@@ -2,6 +2,7 @@
 
 Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5, 5.1, 5.2
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock

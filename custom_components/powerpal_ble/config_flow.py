@@ -1,4 +1,5 @@
 """Config flow for Powerpal BLE integration."""
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +7,6 @@ import re
 from typing import Any
 
 import voluptuous as vol
-
 from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
@@ -20,7 +20,6 @@ from .const import (
     CONF_CONNECTION_MODE,
     CONF_DEVICE_ID,
     CONF_ESPHOME_POWER_ENTITY,
-    CONF_ESPHOME_PULSE_ENTITY,
     CONF_MAC_ADDRESS,
     CONF_NOTIFICATION_INTERVAL,
     CONF_PAIRING_CODE,
@@ -42,13 +41,14 @@ API_KEY_PATTERN = re.compile(
 )
 
 
-class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
+class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Powerpal BLE."""
 
     VERSION = 1
 
     def __init__(self) -> None:
         """Initialize the config flow."""
+        super().__init__()
         self._discovery_info: BluetoothServiceInfoBleak | None = None
         self._discovered_address: str | None = None
 
@@ -67,8 +67,7 @@ class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle connection mode selection after Bluetooth discovery."""
         if user_input is not None:
-            mode = user_input[CONF_CONNECTION_MODE]
-            if mode == CONNECTION_MODE_ESPHOME:
+            if user_input[CONF_CONNECTION_MODE] == CONNECTION_MODE_ESPHOME:
                 return await self.async_step_esphome()
             return await self.async_step_pairing()
 
@@ -94,8 +93,7 @@ class PowerpalBLEConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle the user step — choose connection mode."""
         if user_input is not None:
-            mode = user_input[CONF_CONNECTION_MODE]
-            if mode == CONNECTION_MODE_ESPHOME:
+            if user_input[CONF_CONNECTION_MODE] == CONNECTION_MODE_ESPHOME:
                 return await self.async_step_esphome()
             return await self.async_step_ble_device()
 

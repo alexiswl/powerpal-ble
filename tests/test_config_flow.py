@@ -2,6 +2,7 @@
 
 Validates Requirements: 1.1, 1.2, 1.3
 """
+
 from __future__ import annotations
 
 import pytest
@@ -18,7 +19,6 @@ from custom_components.powerpal_ble.const import (
     DEFAULT_NOTIFICATION_INTERVAL,
     DEFAULT_PULSES_PER_KWH,
 )
-
 
 # ---------------------------------------------------------------------------
 # Rebuild the pairing schema as defined in config_flow.py for direct testing

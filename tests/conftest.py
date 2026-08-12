@@ -3,6 +3,7 @@
 Mocks the homeassistant package at import time so tests can import
 custom_components.powerpal_ble modules without a full HA installation.
 """
+
 from __future__ import annotations
 
 import sys
@@ -31,8 +32,6 @@ _HA_MODULES = [
     "homeassistant.helpers.event",
     "homeassistant.helpers.update_coordinator",
     "homeassistant.loader",
-    "bleak",
-    "bleak.exc",
     "bleak_retry_connector",
     "bluetooth_adapters",
 ]
@@ -83,13 +82,6 @@ def _install_ha_mocks():
 
             if mod_name == "homeassistant.helpers.entity_registry":
                 mock.async_get = MagicMock(return_value=MagicMock())
-
-            if mod_name == "bleak":
-                mock.BleakClient = MagicMock
-                mock.BleakError = Exception
-
-            if mod_name == "bleak.exc":
-                mock.BleakError = Exception
 
             sys.modules[mod_name] = mock
 

@@ -2,13 +2,12 @@
 
 Validates: Requirements 3.1, 3.3, 3.4, 4.4
 """
+
 from __future__ import annotations
 
 import importlib
 import sys
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 # Ensure homeassistant.core.callback is a pass-through decorator so that
 # decorated methods in ESPHomeCoordinator remain callable functions.
@@ -64,10 +63,12 @@ class TestESPHomeCoordinatorEndToEnd:
         Validates: Requirements 3.1, 3.3, 3.4
         """
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
 
@@ -82,7 +83,9 @@ class TestESPHomeCoordinatorEndToEnd:
         callback = hass.bus.async_listen.call_args[0][1]
 
         # Simulate first reading at t=1000.0 with 500W
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event1 = _make_state_event("sensor.powerpal_power", "500.0")
@@ -94,7 +97,9 @@ class TestESPHomeCoordinatorEndToEnd:
         assert coordinator.daily_energy_kwh == 0.0
 
         # Simulate second reading at t=1060.0 (60s later) with 500W
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 1060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event2 = _make_state_event("sensor.powerpal_power", "500.0")
@@ -115,10 +120,12 @@ class TestESPHomeCoordinatorEndToEnd:
         Validates: Requirements 3.3, 3.4
         """
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
 
@@ -131,15 +138,17 @@ class TestESPHomeCoordinatorEndToEnd:
 
         # Define a sequence of readings: (time, power_watts)
         readings = [
-            (1000.0, 100.0),   # First reading — no energy
-            (1060.0, 200.0),   # 60s at 200W
-            (1120.0, 300.0),   # 60s at 300W
-            (1180.0, 150.0),   # 60s at 150W
-            (1300.0, 400.0),   # 120s at 400W
+            (1000.0, 100.0),  # First reading — no energy
+            (1060.0, 200.0),  # 60s at 200W
+            (1120.0, 300.0),  # 60s at 300W
+            (1180.0, 150.0),  # 60s at 150W
+            (1300.0, 400.0),  # 120s at 400W
         ]
 
         for t, power in readings:
-            with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+            with patch(
+                "custom_components.powerpal_ble.esphome_coordinator.time"
+            ) as mock_time:
                 mock_time.time.return_value = t
                 mock_time.localtime.return_value = MagicMock(tm_yday=1)
                 event = _make_state_event("sensor.powerpal_power", str(power))
@@ -170,10 +179,12 @@ class TestESPHomeCoordinatorEndToEnd:
         """
         hass = _make_hass()
         # Use the OLD config key — no esphome_power_entity present
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
 
@@ -188,7 +199,9 @@ class TestESPHomeCoordinatorEndToEnd:
         callback = hass.bus.async_listen.call_args[0][1]
 
         # Fire an event for the old entity — should be processed
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 2000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_pulses", "750.0")
@@ -197,7 +210,9 @@ class TestESPHomeCoordinatorEndToEnd:
         assert coordinator.power == 750.0
 
         # Fire a second event to verify energy accumulation works
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 2060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_pulses", "750.0")
@@ -215,11 +230,13 @@ class TestESPHomeCoordinatorEndToEnd:
         Validates: Requirement 4.4
         """
         hass = _make_hass()
-        entry = _make_entry({
-            CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
-            CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
-            CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
-        })
+        entry = _make_entry(
+            {
+                CONF_CONNECTION_MODE: CONNECTION_MODE_ESPHOME,
+                CONF_ESPHOME_POWER_ENTITY: "sensor.powerpal_power",
+                CONF_ESPHOME_PULSE_ENTITY: "sensor.powerpal_pulses",
+            }
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
 
@@ -234,7 +251,9 @@ class TestESPHomeCoordinatorEndToEnd:
         callback = hass.bus.async_listen.call_args[0][1]
 
         # Event for the new entity should be processed
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 3000.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_power", "250.0")
@@ -243,7 +262,9 @@ class TestESPHomeCoordinatorEndToEnd:
         assert coordinator.power == 250.0
 
         # Event for the OLD entity should be ignored
-        with patch("custom_components.powerpal_ble.esphome_coordinator.time") as mock_time:
+        with patch(
+            "custom_components.powerpal_ble.esphome_coordinator.time"
+        ) as mock_time:
             mock_time.time.return_value = 3060.0
             mock_time.localtime.return_value = MagicMock(tm_yday=1)
             event = _make_state_event("sensor.powerpal_pulses", "999.0")

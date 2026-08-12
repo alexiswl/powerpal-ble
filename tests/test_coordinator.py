@@ -2,6 +2,7 @@
 
 Validates: Requirements 2.1, 2.2, 2.3, 2.5, 6.1, 6.2, 6.3
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,7 +34,7 @@ if "bleak_retry_connector" not in sys.modules:
     sys.modules["bleak_retry_connector"] = mock_retry
     _ha_mocks["bleak_retry_connector"] = mock_retry
 
-from custom_components.powerpal_ble.const import (  # noqa: E402
+from custom_components.powerpal_ble.const import (
     CHAR_PAIRING_CODE_UUID,
     CONF_BLUEZ_BONDING,
     CONF_MAC_ADDRESS,
@@ -41,7 +42,7 @@ from custom_components.powerpal_ble.const import (  # noqa: E402
     CONF_PAIRING_CODE,
     CONF_PULSES_PER_KWH,
 )
-from custom_components.powerpal_ble.coordinator import PowerpalCoordinator  # noqa: E402
+from custom_components.powerpal_ble.coordinator import PowerpalCoordinator
 
 
 def _make_coordinator(bluez_bonding: bool | None = None) -> PowerpalCoordinator:
@@ -82,9 +83,7 @@ def _mock_services():
 def mock_connect_deps():
     """Mock all external dependencies used by _connect()."""
     with (
-        patch(
-            "custom_components.powerpal_ble.coordinator.bluetooth"
-        ) as mock_bt,
+        patch("custom_components.powerpal_ble.coordinator.bluetooth") as mock_bt,
         patch(
             "custom_components.powerpal_ble.coordinator.establish_connection",
             new_callable=AsyncMock,
@@ -122,11 +121,15 @@ async def test_coordinator_calls_bonding_when_enabled(mock_connect_deps):
     """Test coordinator calls bonding methods when bluez_bonding is True."""
     coordinator = _make_coordinator(bluez_bonding=True)
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock, return_value=True
-    ) as mock_check_bonded, patch.object(
-        coordinator, "_bluez_pair", new_callable=AsyncMock
-    ) as mock_pair:
+    with (
+        patch.object(
+            coordinator,
+            "_check_bluez_bonded",
+            new_callable=AsyncMock,
+            return_value=True,
+        ) as mock_check_bonded,
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock) as mock_pair,
+    ):
         await coordinator._connect()
 
     mock_check_bonded.assert_called_once()
@@ -139,11 +142,12 @@ async def test_coordinator_skips_bonding_when_disabled(mock_connect_deps):
     """Test coordinator skips bonding methods when bluez_bonding is False."""
     coordinator = _make_coordinator(bluez_bonding=False)
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock
-    ) as mock_check_bonded, patch.object(
-        coordinator, "_bluez_pair", new_callable=AsyncMock
-    ) as mock_pair:
+    with (
+        patch.object(
+            coordinator, "_check_bluez_bonded", new_callable=AsyncMock
+        ) as mock_check_bonded,
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock) as mock_pair,
+    ):
         await coordinator._connect()
 
     mock_check_bonded.assert_not_called()
@@ -156,17 +160,21 @@ async def test_coordinator_writes_pairing_code_when_bonding_enabled(mock_connect
     coordinator = _make_coordinator(bluez_bonding=True)
     mock_client = mock_connect_deps["client"]
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock, return_value=True
-    ), patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock):
+    with (
+        patch.object(
+            coordinator,
+            "_check_bluez_bonded",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock),
+    ):
         await coordinator._connect()
 
     # Verify write_gatt_char was called with the pairing code UUID
     expected_pairing_bytes = struct.pack("<I", 123456)
     calls = mock_client.write_gatt_char.call_args_list
-    pairing_write_calls = [
-        c for c in calls if c[0][0] == CHAR_PAIRING_CODE_UUID
-    ]
+    pairing_write_calls = [c for c in calls if c[0][0] == CHAR_PAIRING_CODE_UUID]
     assert len(pairing_write_calls) >= 1
     assert pairing_write_calls[0][0][1] == expected_pairing_bytes
 
@@ -177,25 +185,22 @@ async def test_coordinator_writes_pairing_code_when_bonding_disabled(mock_connec
     coordinator = _make_coordinator(bluez_bonding=False)
     mock_client = mock_connect_deps["client"]
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock
-    ), patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock):
+    with (
+        patch.object(coordinator, "_check_bluez_bonded", new_callable=AsyncMock),
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock),
+    ):
         await coordinator._connect()
 
     # Verify write_gatt_char was called with the pairing code UUID
     expected_pairing_bytes = struct.pack("<I", 123456)
     calls = mock_client.write_gatt_char.call_args_list
-    pairing_write_calls = [
-        c for c in calls if c[0][0] == CHAR_PAIRING_CODE_UUID
-    ]
+    pairing_write_calls = [c for c in calls if c[0][0] == CHAR_PAIRING_CODE_UUID]
     assert len(pairing_write_calls) >= 1
     assert pairing_write_calls[0][0][1] == expected_pairing_bytes
 
 
 @pytest.mark.asyncio
-async def test_auth_error_logs_warning_when_bonding_disabled(
-    mock_connect_deps, caplog
-):
+async def test_auth_error_logs_warning_when_bonding_disabled(mock_connect_deps, caplog):
     """Test auth error with bonding disabled logs a warning."""
     coordinator = _make_coordinator(bluez_bonding=False)
     mock_client = mock_connect_deps["client"]
@@ -205,9 +210,10 @@ async def test_auth_error_logs_warning_when_bonding_disabled(
         side_effect=BleakError("authentication failed")
     )
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock
-    ), patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock):
+    with (
+        patch.object(coordinator, "_check_bluez_bonded", new_callable=AsyncMock),
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock),
+    ):
         with caplog.at_level(logging.WARNING):
             with pytest.raises(BleakError):
                 await coordinator._connect()
@@ -222,7 +228,10 @@ async def test_auth_error_logs_warning_when_bonding_disabled(
         if "authentication" in m.lower() or "encryption" in m.lower()
     ]
     assert len(auth_warnings) >= 1
-    assert "bonding disabled" in auth_warnings[0].lower() or "BlueZ bonding" in auth_warnings[0]
+    assert (
+        "bonding disabled" in auth_warnings[0].lower()
+        or "BlueZ bonding" in auth_warnings[0]
+    )
 
 
 @pytest.mark.asyncio
@@ -230,16 +239,15 @@ async def test_info_log_when_bonding_skipped(mock_connect_deps, caplog):
     """Test INFO log emitted when bonding is skipped (bluez_bonding=False)."""
     coordinator = _make_coordinator(bluez_bonding=False)
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock
-    ), patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock):
+    with (
+        patch.object(coordinator, "_check_bluez_bonded", new_callable=AsyncMock),
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock),
+    ):
         with caplog.at_level(logging.DEBUG):
             await coordinator._connect()
 
     # Find INFO-level records about bonding being skipped
-    info_messages = [
-        r.message for r in caplog.records if r.levelno == logging.INFO
-    ]
+    info_messages = [r.message for r in caplog.records if r.levelno == logging.INFO]
     bonding_skipped_msgs = [
         m for m in info_messages if "skipping bonding check" in m.lower()
     ]
@@ -253,19 +261,21 @@ async def test_debug_log_when_bonding_enabled(mock_connect_deps, caplog):
     """Test DEBUG log emitted when bonding is enabled (bluez_bonding=True)."""
     coordinator = _make_coordinator(bluez_bonding=True)
 
-    with patch.object(
-        coordinator, "_check_bluez_bonded", new_callable=AsyncMock, return_value=True
-    ), patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock):
+    with (
+        patch.object(
+            coordinator,
+            "_check_bluez_bonded",
+            new_callable=AsyncMock,
+            return_value=True,
+        ),
+        patch.object(coordinator, "_bluez_pair", new_callable=AsyncMock),
+    ):
         with caplog.at_level(logging.DEBUG):
             await coordinator._connect()
 
     # Find DEBUG-level records about bonding being enabled
-    debug_messages = [
-        r.message for r in caplog.records if r.levelno == logging.DEBUG
-    ]
-    bonding_enabled_msgs = [
-        m for m in debug_messages if "bonding enabled" in m.lower()
-    ]
+    debug_messages = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+    bonding_enabled_msgs = [m for m in debug_messages if "bonding enabled" in m.lower()]
     assert len(bonding_enabled_msgs) >= 1
     # Should include the MAC address
     assert "AA:BB:CC:DD:EE:FF" in bonding_enabled_msgs[0]

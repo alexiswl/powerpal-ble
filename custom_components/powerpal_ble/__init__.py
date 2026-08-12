@@ -1,8 +1,10 @@
 """The Powerpal BLE integration."""
+
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -19,6 +21,10 @@ from .const import (
     DOMAIN,
 )
 
+if TYPE_CHECKING:
+    from .coordinator import PowerpalCoordinator
+    from .esphome_coordinator import ESPHomeCoordinator
+
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,28 +37,22 @@ async def _fetch_historical(
 ) -> None:
     """Fetch historical data from Powerpal API and import to HA statistics."""
     try:
-        records = await api_client.fetch_historical_readings(days=365)
-
-        if not records:
-            _LOGGER.info(
-                "Powerpal historical fetch: no records returned from API"
-            )
+        if not (records := await api_client.fetch_historical_readings(days=365)):
+            _LOGGER.info("Powerpal historical fetch: no records returned from API")
             return
 
-        _LOGGER.info(
-            "Powerpal historical fetch: received %d records", len(records)
-        )
+        _LOGGER.info("Powerpal historical fetch: received %d records", len(records))
 
         # Import into HA long-term statistics
         statistic_id = f"{DOMAIN}:{entry.entry_id}_energy_total"
 
         try:
-            from homeassistant.components.recorder.statistics import (  # noqa: PLC0415
-                async_import_statistics,
-            )
-            from homeassistant.components.recorder.models import (  # noqa: PLC0415
+            from homeassistant.components.recorder.models import (  # pylint: disable=import-outside-toplevel
                 StatisticData,
                 StatisticMetaData,
+            )
+            from homeassistant.components.recorder.statistics import (  # pylint: disable=import-outside-toplevel
+                async_import_statistics,
             )
         except ImportError:
             _LOGGER.warning(
@@ -77,9 +77,7 @@ async def _fetch_historical(
             cumulative_energy += record["watt_hours"] / 1000  # Wh to kWh
             statistics_data.append(
                 StatisticData(
-                    start=datetime.fromtimestamp(
-                        record["timestamp"], tz=timezone.utc
-                    ),
+                    start=datetime.fromtimestamp(record["timestamp"], tz=UTC),
                     sum=cumulative_energy,
                 )
             )
@@ -92,7 +90,7 @@ async def _fetch_historical(
             len(statistics_data),
         )
 
-    except Exception as err:  # noqa: BLE001
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as err:
         _LOGGER.warning("Powerpal historical data fetch failed: %s", err)
 
 
@@ -100,12 +98,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Powerpal BLE from a config entry."""
     connection_mode = entry.data.get(CONF_CONNECTION_MODE, DEFAULT_CONNECTION_MODE)
 
+    coordinator: PowerpalCoordinator | ESPHomeCoordinator
     if connection_mode == CONNECTION_MODE_ESPHOME:
-        from .esphome_coordinator import ESPHomeCoordinator  # noqa: PLC0415
+        from .esphome_coordinator import (  # pylint: disable=import-outside-toplevel
+            ESPHomeCoordinator,
+        )
 
         coordinator = ESPHomeCoordinator(hass, entry)
     else:
-        from .coordinator import PowerpalCoordinator  # noqa: PLC0415
+        from .coordinator import (  # pylint: disable=import-outside-toplevel
+            PowerpalCoordinator,
+        )
 
         coordinator = PowerpalCoordinator(hass, entry)
 

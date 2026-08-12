@@ -1,5 +1,6 @@
 # Feature: powerpal-api-integration, Property 3: Startup Logging Contains Configured Credentials
 """Property-based tests for startup logging behavior."""
+
 from __future__ import annotations
 
 import logging

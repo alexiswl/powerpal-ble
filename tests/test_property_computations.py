@@ -1,9 +1,12 @@
 """Property-based tests for powerpal_ble computation functions."""
 
-from hypothesis import given, settings, assume
 import hypothesis.strategies as st
+from hypothesis import assume, given, settings
 
-from custom_components.powerpal_ble.computations import compute_power_w, compute_watt_hours
+from custom_components.powerpal_ble.computations import (
+    compute_power_w,
+    compute_watt_hours,
+)
 
 
 # Feature: esphome-cloud-upload, Property 1: Power computation formula
@@ -38,9 +41,7 @@ class TestComputeWattHours:
         pulses=st.integers(min_value=0, max_value=10000),
         pulses_per_kwh=st.integers(min_value=1, max_value=10000),
     )
-    def test_watt_hours_formula_matches_spec(
-        self, pulses: int, pulses_per_kwh: int
-    ):
+    def test_watt_hours_formula_matches_spec(self, pulses: int, pulses_per_kwh: int):
         """For any valid inputs, result equals (pulses / pulses_per_kwh) * 1000.0."""
         result = compute_watt_hours(pulses, pulses_per_kwh)
         expected = (pulses / pulses_per_kwh) * 1000.0

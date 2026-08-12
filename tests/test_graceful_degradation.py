@@ -5,6 +5,7 @@ Validates Requirements 6.1, 6.2, 6.3, 6.4, 6.5:
 - BLE-only mode produces clean logs (no API warnings/errors)
 - BLE sensors continue updating regardless of API client state
 """
+
 from __future__ import annotations
 
 import logging
@@ -15,7 +16,6 @@ import pytest
 
 from custom_components.powerpal_ble import async_setup_entry
 from custom_components.powerpal_ble.coordinator import PowerpalCoordinator
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -109,7 +109,7 @@ async def test_ble_only_mode_no_http_calls():
         patch(
             "custom_components.powerpal_ble.coordinator.PowerpalCoordinator",
             return_value=mock_coordinator,
-        ) as mock_coord_cls,
+        ),
         patch(
             "custom_components.powerpal_ble.async_get_clientsession",
             mock_session_fn,

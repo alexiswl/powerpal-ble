@@ -1,9 +1,10 @@
 """Async client for the Powerpal readings API."""
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -42,9 +43,7 @@ class PowerpalApiClient:
         """True if client received 401 and should stop uploading."""
         return self._disabled
 
-    async def upload_reading(
-        self, timestamp: int, watt_hours: float
-    ) -> bool:
+    async def upload_reading(self, timestamp: int, watt_hours: float) -> bool:  # pylint: disable=too-many-return-statements
         """Upload a single measurement. Returns True on success.
 
         Non-blocking from caller's perspective (caller uses create_task).
@@ -57,8 +56,14 @@ class PowerpalApiClient:
 
         try:
             url = f"{self.BASE_URL}meter_reading/{self._device_id}"
-            payload = [{"timestamp": timestamp, "watt_hours": watt_hours,
-                        "cost": 0, "is_peak": False}]
+            payload = [
+                {
+                    "timestamp": timestamp,
+                    "watt_hours": watt_hours,
+                    "cost": 0,
+                    "is_peak": False,
+                }
+            ]
             timeout = aiohttp.ClientTimeout(total=self.UPLOAD_TIMEOUT)
 
             max_retries = 3
@@ -91,7 +96,7 @@ class PowerpalApiClient:
                                 return False
                             retry_after = resp.headers.get("Retry-After")
                             try:
-                                wait_seconds = int(retry_after)
+                                wait_seconds = int(retry_after) if retry_after else 60
                             except (TypeError, ValueError):
                                 wait_seconds = 60
                             _LOGGER.debug(
@@ -113,31 +118,27 @@ class PowerpalApiClient:
                         )
                         return False
 
-                except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+                except (TimeoutError, aiohttp.ClientError) as err:
                     _LOGGER.warning(
                         "Powerpal API upload failed due to network error: %s",
                         err,
                     )
                     return False
 
-        except Exception as err:  # noqa: BLE001
-            _LOGGER.warning(
-                "Unexpected error during Powerpal API upload: %s", err
-            )
+        except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
+            _LOGGER.warning("Unexpected error during Powerpal API upload: %s", err)
             return False
 
         return False
 
-    async def fetch_historical_readings(
-        self, days: int = 365
-    ) -> list[dict[str, Any]]:
+    async def fetch_historical_readings(self, days: int = 365) -> list[dict[str, Any]]:  # pylint: disable=too-many-return-statements
         """Fetch historical readings for the past N days.
 
         Returns list of {"timestamp": int, "watt_hours": float} dicts.
         Returns empty list on any failure (logs warning).
         """
         try:
-            end = datetime.now(tz=timezone.utc)
+            end = datetime.now(tz=UTC)
             start = end - timedelta(days=days)
 
             url = f"{self.BASE_URL}device/{self._device_id}/readings"
@@ -169,8 +170,7 @@ class PowerpalApiClient:
                     return []
 
                 if resp.status >= 200 and resp.status < 300:
-                    data = await resp.json()
-                    if not data:
+                    if not (data := await resp.json()):
                         return []
                     return [
                         {
@@ -188,12 +188,10 @@ class PowerpalApiClient:
                 )
                 return []
 
-        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.warning(
-                "Network error fetching Powerpal historical data: %s", err
-            )
+        except (TimeoutError, aiohttp.ClientError) as err:
+            _LOGGER.warning("Network error fetching Powerpal historical data: %s", err)
             return []
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001  # pylint: disable=broad-exception-caught
             _LOGGER.warning(
                 "Unexpected error fetching Powerpal historical data: %s", err
             )
